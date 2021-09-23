@@ -68,7 +68,7 @@ utilities_tranlate_script(){
     [[ -e "${filein}" ]] || { cecho "${BAD}" "file doesn\'t exist ${filein}"; exit 1; }
     # read file
     contents=$(cat ${filein})
-    
+
     # do substutions
     local i=0
     for key in ${keys[@]}; do
@@ -280,11 +280,11 @@ write_log(){
     local log_file=$3
     local _file
     get_job_info ${job_id} 'ST'
-    quit_if_fail "get_job_info: invalid id number ${job_id} or no such stat 'ST'" 
+    quit_if_fail "get_job_info: invalid id number ${job_id} or no such stat 'ST'"
     local ST=${return_value}
     [[ -z ${ST} ]] && ST="PD"
 
-    # find the stdout file  
+    # find the stdout file
     for _file in ${job_dir}/*
     do
         # look for stdout file
@@ -292,11 +292,11 @@ write_log(){
             break
 	fi
     done
-    
+
     # parse stdout file
     parse_stdout ${_file}  # parse this file
-   
-    # fix non-existing value 
+
+    # fix non-existing value
     [[ -z ${last_time_step} ]] && last_time_step=0
     [[ -z ${last_time} ]] && last_time=0
 
@@ -322,6 +322,21 @@ clean_log(){
 	    ((i++))
     done
     [[ ${_find} -eq 1 ]] && eval "sed -in '${flag}'d ${log_file}"  # eliminate the line of "${case_dir}"
+}
+
+util_read_job_info_from_ps(){
+    # read job id and name from the "ps" command
+    # Inputs:
+    #   $1: key word
+    # Outputs:
+    #   ${job_ids}: ids of the results
+    [[ -n $1 ]] || cecho ${BAD} "${FUNCNAME[0]}: no key"
+    local_ps_outputs=$(ps --format="%p %a" -ax | grep -e \ "$1"\ )
+    IFS=" "; local entries=(${local_ps_outputs})
+    job_ids=()
+    for entry in ${entries[@]}; do
+        [[ ${entry} =~ ^[0-9]+$ ]] && job_ids+=("${entry}")
+    done
 }
 
 ################################################################################
@@ -370,19 +385,19 @@ write_time_log(){
     local job_id=$2
     local log_file=$3
 
-    # get machine time 
+    # get machine time
     get_job_info ${job_id} 'TIME'
-    quit_if_fail "get_job_info: invalid id number ${job_id} or no such stat 'TIME'" 
+    quit_if_fail "get_job_info: invalid id number ${job_id} or no such stat 'TIME'"
     local TIME=${return_value}
     [[ -n ${TIME} && ! ${TIME} = 'NA' ]] || { cehco ${BAD} "${FUNCNAME[0]}: cannot get valid TIME for job ${job_id}"; exit 1; }
 
     # get CPU
     get_job_info ${job_id} 'CPU'
-    quit_if_fail "get_job_info: invalid id number ${job_id} or no such stat 'CPU'" 
+    quit_if_fail "get_job_info: invalid id number ${job_id} or no such stat 'CPU'"
     local CPU=${return_value}
     [[ -n ${CPU} && ! ${CPU} = 'NA' ]] || { cehco ${BAD} "${FUNCNAME[0]}: cannot get valid CPU for job ${job_id}"; exit 1; }
 
-    # find the stdout file  
+    # find the stdout file
     for _file in ${job_dir}/*
     do
         # look for stdout file
@@ -390,14 +405,14 @@ write_time_log(){
             break
 	fi
     done
-    
+
     # parse stdout file
     parse_stdout ${_file}  # parse this file
 
     # output header if file doesn't exist
     # mind here Time is related to ${last_time},
     # which is the model time at last model step
-    if ! [[ -e ${log_file} ]]; then 
+    if ! [[ -e ${log_file} ]]; then
         printf "# 1: Time step number\n" >> ${log_file}
         printf "# 2: Time\n" >> ${log_file}
         printf "# 3: Machine time (hr)\n" >> ${log_file}
@@ -415,7 +430,7 @@ write_time_log(){
     convert_time_to_hrs "${TIME}"
     local time_in_hr="${convert_time_to_hrs_o}"
 
-    # output to file 
+    # output to file
     printf "%-10s %-15s %-10s %s\n" ${last_time_step} ${last_time} ${time_in_hr} ${CPU} >> ${log_file}
 
     return 0
@@ -476,7 +491,7 @@ compare_files(){
     # check file existence
     [[ -e $2 ]] || { cecho ${BAD} "${FUNCNAME[0]}: file $2 doesn't exist"; exit 1; }
     [[ -e $3 ]] || { cecho ${BAD} "${FUNCNAME[0]}: file $3 doesn't exist"; exit 1; }
-    
+
     # check_file
     difference=$(diff -nB "$2" "$3")
     if [[ -n ${difference} ]]; then
@@ -595,7 +610,7 @@ parse_stdout1()
 {
     # unset output variables
     unset content
-    
+
     # find lines in file
     local grep_output; local grep_output_array; local next_step;
     local index0; local index1
@@ -611,7 +626,7 @@ parse_stdout1()
     grep_output_array=(${grep_output})
     index1=${grep_output_array[0]}
     [[ -z ${index1} ]] && cecho ${WARN} "${FUNCNAME[0]}: cannot find end line, will take end of the file" || ((index1-=1))
-    
+
     # read file
     if [[ -n ${index1} ]]; then
         content=$(sed -n "${index0},${index1}"p  $1)
@@ -665,7 +680,7 @@ parse_block_outputs()
     done <<< "${content}"
     return 0
 }
-        
+
 
 ################################################################################
 # Parse value in output with a key and a pair of diliminiter
@@ -703,13 +718,13 @@ parse_output_value(){
 #   $1: input string
 flip_rc(){
     echo "$1" | awk '
-    { 
+    {
         for (i=1; i<=NF; i++)  {
             a[NR,i] = $i
         }
     }
     NF>p { p = NF }
-    END {    
+    END {
         for(j=1; j<=p; j++) {
             str=a[1,j]
             for(i=2; i<=NR; i++){
