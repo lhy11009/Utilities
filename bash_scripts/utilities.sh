@@ -332,6 +332,7 @@ util_read_job_info_from_ps(){
     #   ${job_ids}: ids of the results
     [[ -n $1 ]] || cecho ${BAD} "${FUNCNAME[0]}: no key"
     local_ps_outputs=$(ps --format="%p %a" -ax | grep -e \ "$1"\ )
+    echo "${local_ps_outputs}"  # debug
     IFS=" "; local entries=(${local_ps_outputs})
     job_ids=()
     for entry in ${entries[@]}; do
