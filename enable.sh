@@ -1,1 +1,1 @@
-export UTILITIES_DIR=${HOME}/utilities
+export UTILITIES_DIR=${HOME}/Utilities

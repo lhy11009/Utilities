@@ -330,13 +330,18 @@ util_read_job_info_from_ps(){
     #   $1: key word
     # Outputs:
     #   ${job_ids}: ids of the results
-    [[ -n $1 ]] || cecho ${BAD} "${FUNCNAME[0]}: no key"
-    local_ps_outputs=$(ps --format="%p %a" -ax | grep -e \ "$1"\ )
-    echo "${local_ps_outputs}"  # debug
+    [[ -n $1 ]] || { cecho ${BAD} "${FUNCNAME[0]}: no key"; exit 1; }
+    local_ps_outputs=$(ps --format="%p %a" -ax | grep -e "$1" )
+    # echo "${local_ps_outputs}"  # debug
     IFS=" "; local entries=(${local_ps_outputs})
     job_ids=()
+    local last_id
+    # include every job_id except for the last one
     for entry in ${entries[@]}; do
-        [[ ${entry} =~ ^[0-9]+$ ]] && job_ids+=("${entry}")
+        if [[ ${entry} =~ ^[0-9]+$ ]]; then
+	    [[ -n ${last_id} ]] && job_ids+=("${last_id}")
+            last_id="${entry}"
+	fi
     done
 }
 
