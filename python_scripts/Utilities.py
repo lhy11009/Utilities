@@ -7,6 +7,7 @@ import numpy as np
 from importlib import resources
 from pathlib import Path
 
+
 class CODESUB():
     '''
     This is a class to substitute existing code with values & parameters
@@ -18,13 +19,19 @@ class CODESUB():
         contents=''
         options={}
 
-    def read_contents(self, _path):
+    def read_contents(self, *paths):
         '''
         read contents from a file
         '''
-        my_assert(os.access(_path, os.R_OK), FileNotFoundError, "%s: %s cannot be opened" % (func_name(), _path))
-        with open(_path, 'r') as fin:
-            self.contents = fin.read()
+        self.contents=''
+        i = 0 # conunt
+        for _path in paths:
+            my_assert(os.access(_path, os.R_OK), FileNotFoundError, "%s: %s cannot be opened" % (func_name(), _path))
+            with open(_path, 'r') as fin:
+                if i > 0:
+                    self.contents += '\n\n'
+                self.contents += fin.read()
+            i += 1
 
     def read_options(self, _path):
         '''
