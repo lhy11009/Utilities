@@ -514,6 +514,7 @@ def string2list(inputs):
     outputs = [int(i) for i in outputs_str]
     return outputs
 
+
 r"""
 Classes and functions related to parsing json file as options
 """
@@ -526,11 +527,16 @@ class JSON_OPT():
         descriptions (list of str): each member is a description of the option of the file
         types (list of type): each member is the type of the variable
         values (list of variable (type)): each member is the value of a variable
+        defaults (list of variable (type)): each member is the default value of a variable
     """
     def __init__(self):
         """
         Initiation
         """
+        self.keys = []
+        self.descriptions = []
+        self.types = []
+        self.defaults = []
         pass
 
     def read_json(self, _path):
@@ -540,11 +546,18 @@ class JSON_OPT():
             _path (str): path of the json file
         """
         assert(os.access(_path, os.R_OK))
+        self.values = []  # initialize values
         with open(_path, 'r') as fin:
-            self.options = json.load(fin)
-        # json.load()
+            options = json.load(fin)
+        for i in range(len(self.keys)):
+            try:
+                value = read_dict_recursive(options, self.keys[i])
+            except KeyError:
+                value = self.defaults[i]
+            assert(type(value) == self.types[i])
+            self.values.append(value)
 
-    def add_key(self, description, _type, keys):
+    def add_key(self, description, _type, keys, default_value):
         """
         Add an option (key, describtion)
         Inputs:
@@ -553,10 +566,12 @@ class JSON_OPT():
             keys (list): a list of keys from the top level
         """
         for key in keys:
-            assert(type(key) == _type)
+            assert(type(key) == str)
         self.keys.append(keys)
         self.descriptions.append(description)
         self.types.append(_type)
+        assert(_type == type(default_value)) # assert the type of default
+        self.defaults.append(default_value)
         pass
 
     def get_value(self, keys):
@@ -567,11 +582,42 @@ class JSON_OPT():
         """
         pass
 
-    def document(self):
+    def print(self, indent=0):
+        """
+        Print the keys and related values stored
+        Inputs:
+            indent(int): indentation at the front
+        Returns:
+            _str(str): string output
+        """
+        _str = indent*' ' + "All options stored in this object:\n"
+        for i in range(len(self.keys)):
+            _str += '\n' + (indent+4)*' ' + str(self.keys[i]) + '\n'
+            _str += (indent+4)*' ' + "Description: %s" % self.descriptions[i] + '\n'
+            _str += (indent+4)*' ' + "Value: %s" % str(self.values[i]) + '\n'
+        return _str
+
+    def document(self, indent=0):
         """
         Print the documentation of this class.
+        Inputs:
+            indent(int): indentation at the front
+        Returns:
+            _str(str): string output
         """
-        # print()
+        _str = indent*' ' + "All options stored in this object:\n"
+        for i in range(len(self.keys)):
+            _str += '\n' + (indent+4)*' ' + str(self.keys[i]) + '\n'
+            _str += (indent+4)*' ' + "Description: %s" % self.descriptions[i] + '\n'
+            _str += (indent+4)*' ' + "Default value: %s" % str(self.defaults[i]) + '\n'
+        return _str
+    
+    def __call__(self, func_name):
+        """
+        Interface to some function.
+        This should return the exact outputs that function need
+        Implement in daughter classes
+        """
         pass
 
 
@@ -612,3 +658,21 @@ def show_all_options_dict(_dict):
                 for _option in sub_options:
                     all_options.append([key] + _option)  # append to the upper level key
     return all_options
+
+
+def read_dict_recursive(_dict, list_of_keys):
+    '''
+    Read value by a list of keys
+    i.e. ['visit', 'slab'], and 'visit' is a subdictionary within
+    the given _dict variable.
+    Inputs:
+        _dict (dict): input dictionary
+        list_of_keys (str): list of keys to look for
+    '''
+    if len(list_of_keys) > 1:
+        sub_dict = _dict[list_of_keys[0]]
+        sublist_of_keys = [list_of_keys[i] for i in range(1, len(list_of_keys))]
+        value = read_dict_recursive(sub_dict, sublist_of_keys)
+    else:
+        value = _dict[list_of_keys[0]]
+    return value

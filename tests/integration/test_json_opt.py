@@ -24,8 +24,9 @@ import os
 # import pytest
 # import filecmp  # for compare file contents
 import numpy as np
+import json
 # import shilofue.Foo as Foo  # import test module
-from python_scripts.Utilities import JSON_OPT, show_all_options
+from python_scripts.Utilities import JSON_OPT, show_all_options, read_dict_recursive
 # from shilofue.Utilities import 
 # from matplotlib import pyplot as plt
 # from shutil import rmtree  # for remove directories
@@ -46,20 +47,35 @@ def test_json_opt():
     # assert something
     json_path = os.path.join(source_dir, 'test.json') 
     json_opt = JSON_OPT()
+    #
+    json_opt.add_key('directory of case', list, ['dirs'], ['.']) # a key in the file
+    json_opt.add_key('foo', int, ['foo'], 0)  # an key not in the file
     json_opt.read_json(json_path)
-    assert(True)
+    assert(len(json_opt.values)==2)
+    assert(json_opt.values[0] == ['non_linear30/eba_re_mesh1']) # value from the file
+    assert(json_opt.values[1] == 0) # the default value
     
     
-def test_show_all_options():
+def test_supporting_functions():
     '''
-    test the show_all_options function
+    test the supporting functions
+        show_all_options
+        read_dict_recursive
     Define the options of one type of json file and read in examples
     '''
-    json_path = os.path.join(source_dir, 'test.json') 
+    json_path = os.path.join(source_dir, 'test.json')
+    with open(json_path, 'r') as fin:
+        _dict = json.load(fin)
+    # test show_all_options
     all_options = show_all_options(json_path)
     assert(all_options == \
         [['dirs'], ['py_format'], ['visit'], ['visit', 'slab'], ['visit', 'slab', 'steps'],\
             ['visit', 'slab', 'deform_mechanism'], ['docs'], ['docs', 'imgs']])
+    # test read_dict_recursive
+    value = read_dict_recursive(_dict, ['visit', 'slab', 'deform_mechanism'])
+    assert(value == 1)
+    value = read_dict_recursive(_dict, ['visit', 'slab', 'steps'])
+    assert(value == [0, 1, 2, 3, 4, 5, 6, 7])
 
     
 # notes
