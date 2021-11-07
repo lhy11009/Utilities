@@ -513,3 +513,102 @@ def string2list(inputs):
     outputs_str = inputs.split(',')
     outputs = [int(i) for i in outputs_str]
     return outputs
+
+r"""
+Classes and functions related to parsing json file as options
+"""
+class JSON_OPT():
+    """
+    This class defines json options and offer interfaces to use
+    and document them
+    Args:
+        keys (list of list of str): each member contains a list of keys from the top level
+        descriptions (list of str): each member is a description of the option of the file
+        types (list of type): each member is the type of the variable
+        values (list of variable (type)): each member is the value of a variable
+    """
+    def __init__(self):
+        """
+        Initiation
+        """
+        pass
+
+    def read_json(self, _path):
+        """
+        Read in json option from file path
+        Inputs:
+            _path (str): path of the json file
+        """
+        assert(os.access(_path, os.R_OK))
+        with open(_path, 'r') as fin:
+            self.options = json.load(fin)
+        # json.load()
+
+    def add_key(self, description, _type, keys):
+        """
+        Add an option (key, describtion)
+        Inputs:
+            description (str)
+            _type (type)
+            keys (list): a list of keys from the top level
+        """
+        for key in keys:
+            assert(type(key) == _type)
+        self.keys.append(keys)
+        self.descriptions.append(description)
+        self.types.append(_type)
+        pass
+
+    def get_value(self, keys):
+        """
+        Get the value through a list of keys
+        Inputs:
+            keys(list): a list of keys from the top level
+        """
+        pass
+
+    def document(self):
+        """
+        Print the documentation of this class.
+        """
+        # print()
+        pass
+
+
+def show_all_options(_path):
+    '''
+    Show all options in a json file as list of keys
+    This aims to aid the process of interpreting and coding
+    the options of this kind of file.
+    Inputs:
+        _path (str): path of the input json file
+    Returns:
+        -
+    '''
+    assert(os.access(_path, os.R_OK))
+    with open(_path, 'r') as fin:
+        json_contents = json.load(fin)
+    all_options = show_all_options_dict(json_contents)
+    return all_options
+
+
+def show_all_options_dict(_dict):
+    '''
+    Show all options in a dict type as list of keys
+    This aims to aid the process of interpreting and coding
+    the options of this kind of file.
+    Inputs:
+        _dict (dict): input dictionary contains options
+    Returns:
+        all_options (list): all options put in a list with each entry
+        being a list of keys.
+    '''   
+    all_options = []
+    for key, value in _dict.items():
+        if re.match("^_", key) is None:  # skip keys start with '_'
+            all_options.append([key])
+            if type(value) == dict:
+                sub_options = show_all_options_dict(value)  # recursive call function with nested options
+                for _option in sub_options:
+                    all_options.append([key] + _option)  # append to the upper level key
+    return all_options
