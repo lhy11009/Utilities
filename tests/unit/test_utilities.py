@@ -1,9 +1,29 @@
+import os
 import pytest
 import numpy as np
 from python_scripts import Utilities
 
 
+r'''
+Functions that bridging unix operations
+'''
+def test_var_subs():
+    '''
+    Test the var_subs function
+    '''
+    # example 1, actually do nothing
+    result = Utilities.var_subs("foo")
+    assert(result == 'foo')
+    # example 2
+    result = Utilities.var_subs("${HOME}/foo/${ASPECT_LAB_DIR}")
+    result_std = os.environ['HOME'] + "/foo/" + os.environ['ASPECT_LAB_DIR']
+    assert(result == result_std)
+    pass
 
+
+r'''
+Functions for read files
+'''
 def test_read_header():
     '''
     Test the ReadHeader function

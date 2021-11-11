@@ -8,59 +8,157 @@ from importlib import resources
 from pathlib import Path
 
 
-class CODESUB():
+r'''
+Alias for longer syntax in python
+'''
+def func_name():
+    """
+    return the name of the calling function
+    """
+    return inspect.currentframe().f_back.f_code.co_name
+
+
+r'''
+Functions that bridging unix operations
+'''
+def touch(path):
+    """
+    touch a file as in unix system
+    """
+    with open(path, 'a'):
+        os.utime(path, None)
+
+
+def var_subs(_str, **kwargs):
+    """
+    substitute variable as if in bash
+    _str should looks like:
+        "${HOME}/foo", in this case, HOME will be substitued with the
+        corresponding environmental variable.
+    """
+    assert(type(_str)==str)
+    parts = _str.split('${')
+    result = ''  # initiation
+    i = 0  # count
+    for part in parts:
+        if i >= 1:
+            sub_parts = part.split('}', maxsplit=1)  # extract the name of the variable
+            assert(len(sub_parts) == 2)
+            part_substituted = os.environ[sub_parts[0]] + sub_parts[1]  # perform substitution
+        else:
+            part_substituted = part
+        result += part_substituted
+        i += 1
+    return result
+    
+
+r'''
+functions for Execption handling
+'''
+
+def my_assert(_condition, _errortype, _message):
     '''
-    This is a class to substitute existing code with values & parameters
-    Attributes:
-        contents (str)
-        options(disc)
+    an assert function for runtime use
+    Inputs:
+        _condition(True or False):
+            the condition to assert
+        _errortype(some error):
+            the type of error to raise
+        _message(str):
+            the message to raise
     '''
-    def __init__(self):
-        contents=''
-        options={}
+    if _condition is False:
+        raise _errortype(_message)
 
-    def read_contents(self, *paths):
-        '''
-        read contents from a file
-        '''
-        self.contents=''
-        i = 0 # conunt
-        for _path in paths:
-            my_assert(os.access(_path, os.R_OK), FileNotFoundError, "%s: %s cannot be opened" % (func_name(), _path))
-            with open(_path, 'r') as fin:
-                if i > 0:
-                    self.contents += '\n\n'
-                self.contents += fin.read()
-            i += 1
 
-    def read_options(self, _path):
-        '''
-        read options from a json file
-        '''
-        my_assert(os.access(_path, os.R_OK), FileNotFoundError, "%s: %s cannot be opened" % (func_name(), _path))
-        with open(_path, 'r') as fin:
-            self.options = json.load(fin)
+class WarningTypes():
+    '''
+    A class of self defined warning types
+    '''
+    class FileHasNoContentWarning(Warning):
+        pass
 
-    def substitute(self):
-        '''
-        substitute keys with values
-        '''
-        for key, value in self.options.items():
-            self.contents = re.sub(key, str(value), self.contents)
 
-    def save(self, _path):
-        '''
-        save contents to a new file
-        '''
-        # look for directory
-        dir_path = os.path.dirname(_path)
-        if not os.path.isdir(dir_path):
-            os.mkdir(dir_path)
-        # save file
-        with open(_path, 'w') as fout:
-            fout.write(self.contents)
-        return _path
+r'''
+Functions for string options
+'''
+def re_neat_word(_pattern):
+    '''
+    Eliminate ' ', '\\t', '\\n' in front of and at the back of _pattern
+    future: add test function
+    Inputs:
+        _pattern(str): input
+    Outputs:
+        _neat(str): result
+    '''
+    _neat = re.sub('^[ \t]*', '', _pattern)
+    _neat = re.sub('[ \t\n]*$', '', _neat)  # strip value
+    return _neat
 
+
+def re_count_indent(_pattern):
+    '''
+    conunt indentation at the start of a string
+    future: use system ts for tab space
+    Inputs:
+        _pattern(str): input
+    Outputs:
+        _indent(int): indentation at the start of the string
+    '''
+    assert(type(_pattern) is str)
+    _indent = 0
+    for i in range(len(_pattern)):
+        if _pattern[i] == ' ':
+            _indent += 1
+        elif _pattern[i] == '\t':
+            _indent += 4
+        else:
+            break
+    return _indent
+
+
+def re_read_variable_from_string(inputs, pattern, splitter):
+    '''
+    read variable from a input string, typically some output from another executable
+    Inputs:
+        inputs(str)
+    '''
+    found = False
+    input_array = inputs.split('\n')
+    for line in input_array:
+        if re.match(pattern, line):
+            output = line.split(splitter)[1]
+            output = re_neat_word(output)
+            found = True
+    if not found:
+        raise ValueError("%s: pattern(%s) not found" % (func_name(), pattern))
+    return output
+
+
+def get_name_and_extention(_path):
+    """
+    return name and extention
+    """
+    _name = _path.rsplit(".", maxsplit=1)[0]
+    _extension = _path.rsplit(".", maxsplit=1)[1]
+    return _name, _extension
+
+
+def string2list(inputs):
+    """
+    convert list input to string outputs
+    """
+    inputs = inputs.strip(']')
+    inputs = inputs.strip('[')
+    inputs = inputs.strip(' ')
+    outputs_str = inputs.split(',')
+    outputs = [int(i) for i in outputs_str]
+    return outputs
+
+
+r'''
+Functions for read files
+'''
 def JsonOptions(prefix, _dir=None):
     '''
     JsonOptions(prefix)
@@ -184,29 +282,100 @@ def ReadHeader2(_texts):
     return _header
 
 
-def my_assert(_condition, _errortype, _message):
-    '''
-    an assert function for runtime use
+r'''
+Functions for writing files
+'''
+def WriteFileHeader(ofile, header):
+    """
+    A function that writes statistic-like file header
     Inputs:
-        _condition(True or False):
-            the condition to assert
-        _errortype(some error):
-            the type of error to raise
-        _message(str):
-            the message to raise
+        ofile(str): file to output
+        header(dict): dictionary of header to output
+    """
+    # assert file not existing
+    with open(ofile, 'w') as fout:
+        output = ''
+        for key, value in header.items():
+            col = value['col']
+            unit = value.get('unit', None)
+            output += '# %d: %s' % (col+1, key)
+            if unit is not None:
+                output += ' (%s)' % unit
+            output += '\n'
+        fout.write(output)
+
+
+def dump_message(fout, message):
+    """
+    dump_message to a log file
+    notes: I haven't used this since I am not sure whether it's good to open up a log file at the beginning of a script.
+    Inputs:
+        fout: an object that denines an output stream (e.g. sys.stderr)
+    """
+    outputs = "%s: %s" % (inspect.currentframe().f_back.f_code.co_name, message)
+    fout.write(outputs)
+
+
+'''
+Functions for substributing contents of file
+'''
+class CODESUB():
     '''
-    if _condition is False:
-        raise _errortype(_message)
-
-
-class WarningTypes():
+    This is a class to substitute existing code with values & parameters
+    Attributes:
+        contents (str)
+        options(disc)
     '''
-    A class of self defined warning types
-    '''
-    class FileHasNoContentWarning(Warning):
-        pass
+    def __init__(self):
+        contents=''
+        options={}
+
+    def read_contents(self, *paths):
+        '''
+        read contents from a file
+        '''
+        self.contents=''
+        i = 0 # conunt
+        for _path in paths:
+            my_assert(os.access(_path, os.R_OK), FileNotFoundError, "%s: %s cannot be opened" % (func_name(), _path))
+            with open(_path, 'r') as fin:
+                if i > 0:
+                    self.contents += '\n\n'
+                self.contents += fin.read()
+            i += 1
+
+    def read_options(self, _path):
+        '''
+        read options from a json file
+        '''
+        my_assert(os.access(_path, os.R_OK), FileNotFoundError, "%s: %s cannot be opened" % (func_name(), _path))
+        with open(_path, 'r') as fin:
+            self.options = json.load(fin)
+
+    def substitute(self):
+        '''
+        substitute keys with values
+        '''
+        for key, value in self.options.items():
+            self.contents = re.sub(key, str(value), self.contents)
+
+    def save(self, _path):
+        '''
+        save contents to a new file
+        '''
+        # look for directory
+        dir_path = os.path.dirname(_path)
+        if not os.path.isdir(dir_path):
+            os.mkdir(dir_path)
+        # save file
+        with open(_path, 'w') as fout:
+            fout.write(self.contents)
+        return _path
 
 
+r'''
+Functions for converting units
+'''
 class UNITCONVERT():
     '''
     UNITCONVERT():
@@ -298,60 +467,9 @@ class UNITCONVERT():
         return _convert_ratio
 
 
-# re functions
-def re_neat_word(_pattern):
-    '''
-    Eliminate ' ', '\\t', '\\n' in front of and at the back of _pattern
-    future: add test function
-    Inputs:
-        _pattern(str): input
-    Outputs:
-        _neat(str): result
-    '''
-    _neat = re.sub('^[ \t]*', '', _pattern)
-    _neat = re.sub('[ \t\n]*$', '', _neat)  # strip value
-    return _neat
-
-
-def re_count_indent(_pattern):
-    '''
-    conunt indentation at the start of a string
-    future: use system ts for tab space
-    Inputs:
-        _pattern(str): input
-    Outputs:
-        _indent(int): indentation at the start of the string
-    '''
-    assert(type(_pattern) is str)
-    _indent = 0
-    for i in range(len(_pattern)):
-        if _pattern[i] == ' ':
-            _indent += 1
-        elif _pattern[i] == '\t':
-            _indent += 4
-        else:
-            break
-    return _indent
-
-
-def re_read_variable_from_string(inputs, pattern, splitter):
-    '''
-    read variable from a input string, typically some output from another executable
-    Inputs:
-        inputs(str)
-    '''
-    found = False
-    input_array = inputs.split('\n')
-    for line in input_array:
-        if re.match(pattern, line):
-            output = line.split(splitter)[1]
-            output = re_neat_word(output)
-            found = True
-    if not found:
-        raise ValueError("%s: pattern(%s) not found" % (func_name(), pattern))
-    return output
-
-
+r'''
+Functions for coordinate transform
+'''
 def ggr2cart(lat,lon,r):
     # transform spherical lat,lon,r geographical coordinates
     # to global cartesian xyz coordinates
@@ -403,6 +521,9 @@ def cart2sph2(x,y):
     return r, ph
 
 
+r'''
+Functions for additional opionts in numpy
+'''
 def Make2dArray(x):
     """
     A function that returns 2d nparray, this could be useful to generate uniform output
@@ -419,26 +540,10 @@ def Make2dArray(x):
     return array_
 
 
-def WriteFileHeader(ofile, header):
-    """
-    A function that writes statistic-like file header
-    Inputs:
-        ofile(str): file to output
-        header(dict): dictionary of header to output
-    """
-    # assert file not existing
-    with open(ofile, 'w') as fout:
-        output = ''
-        for key, value in header.items():
-            col = value['col']
-            unit = value.get('unit', None)
-            output += '# %d: %s' % (col+1, key)
-            if unit is not None:
-                output += ' (%s)' % unit
-            output += '\n'
-        fout.write(output)
 
-
+r'''
+Functions for phase functions
+'''
 def PhaseFunction(x):
     """
     function defined in MaterialModel/Utilities in aspect
@@ -469,50 +574,8 @@ def AveragePhaseFunctionInputs(x1, x2):
     return average
 
 
-def touch(path):
-    """
-    touch a file as in unix system
-    """
-    with open(path, 'a'):
-        os.utime(path, None)
 
 
-def func_name():
-    """
-    return the name of the calling function
-    """
-    return inspect.currentframe().f_back.f_code.co_name
-
-
-def dump_message(fout, message):
-    """
-    dump_message to a log file
-    notes: I haven't used this since I am not sure whether it's good to open up a log file at the beginning of a script.
-    Inputs:
-        fout: an object that denines an output stream (e.g. sys.stderr)
-    """
-    outputs = "%s: %s" % (inspect.currentframe().f_back.f_code.co_name, message)
-    fout.write(outputs)
-
-
-def get_name_and_extention(_path):
-    """
-    return name and extention
-    """
-    _name = _path.rsplit(".", maxsplit=1)[0]
-    _extension = _path.rsplit(".", maxsplit=1)[1]
-    return _name, _extension
-
-def string2list(inputs):
-    """
-    convert list input to string outputs
-    """
-    inputs = inputs.strip(']')
-    inputs = inputs.strip('[')
-    inputs = inputs.strip(' ')
-    outputs_str = inputs.split(',')
-    outputs = [int(i) for i in outputs_str]
-    return outputs
 
 
 r"""
@@ -535,6 +598,7 @@ class JSON_OPT():
         """
         self.keys = []
         self.descriptions = []
+        self.values = [] 
         self.types = []
         self.defaults = []
         pass
@@ -546,7 +610,6 @@ class JSON_OPT():
             _path (str): path of the json file
         """
         assert(os.access(_path, os.R_OK))
-        self.values = []  # initialize values
         with open(_path, 'r') as fin:
             options = json.load(fin)
         for i in range(len(self.keys)):
@@ -554,8 +617,16 @@ class JSON_OPT():
                 value = read_dict_recursive(options, self.keys[i])
             except KeyError:
                 value = self.defaults[i]
-            assert(type(value) == self.types[i])
+            my_assert(type(value) == self.types[i], TypeError,\
+            "%s: type of the default (%s) is not %s" % (func_name(), str(type(value)), str(self.types[i]))) # assert the type of value
             self.values.append(value)
+        self.check()
+
+    def check(self):
+        """
+        check to see if these values make sense
+        """
+        pass
 
     def add_key(self, description, _type, keys, default_value):
         """
@@ -570,7 +641,8 @@ class JSON_OPT():
         self.keys.append(keys)
         self.descriptions.append(description)
         self.types.append(_type)
-        assert(_type == type(default_value)) # assert the type of default
+        my_assert(_type == type(default_value), TypeError,\
+        "%s: type of the default (%s) is not %s" % (func_name(), str(type(default_value)), str(_type))) # assert the type of default
         self.defaults.append(default_value)
         pass
 
@@ -605,11 +677,11 @@ class JSON_OPT():
         Returns:
             _str(str): string output
         """
-        _str = indent*' ' + "All options stored in this object:\n"
+        _str = ''
         for i in range(len(self.keys)):
             _str += '\n' + (indent+4)*' ' + str(self.keys[i]) + '\n'
-            _str += (indent+4)*' ' + "Description: %s" % self.descriptions[i] + '\n'
-            _str += (indent+4)*' ' + "Default value: %s" % str(self.defaults[i]) + '\n'
+            _str += (indent+8)*' ' + "Description: %s" % self.descriptions[i] + '\n'
+            _str += (indent+8)*' ' + "Default value: %s" % str(self.defaults[i]) + '\n'
         return _str
     
     def __call__(self, func_name):
