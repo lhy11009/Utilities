@@ -591,6 +591,8 @@ class JSON_OPT():
         types (list of type): each member is the type of the variable
         values (list of variable (type)): each member is the value of a variable
         defaults (list of variable (type)): each member is the default value of a variable
+        nicks (list of variable (type)): each member is the nickname of a variable
+        start (int): number of entries in the parental class
     """
     def __init__(self):
         """
@@ -601,6 +603,8 @@ class JSON_OPT():
         self.values = [] 
         self.types = []
         self.defaults = []
+        self.nicks = []
+        self.start = 0
         pass
 
     def read_json(self, _path):
@@ -610,6 +614,7 @@ class JSON_OPT():
             _path (str): path of the json file
         """
         assert(os.access(_path, os.R_OK))
+        print("    Read options from json file: %s" % _path)
         with open(_path, 'r') as fin:
             options = json.load(fin)
         for i in range(len(self.keys)):
@@ -628,22 +633,26 @@ class JSON_OPT():
         """
         pass
 
-    def add_key(self, description, _type, keys, default_value):
+    def add_key(self, description, _type, keys, default_value, **kwargs):
         """
         Add an option (key, describtion)
         Inputs:
             description (str)
             _type (type)
             keys (list): a list of keys from the top level
+            kwargs (dict):
+                nick (str): nickname
         """
         for key in keys:
             assert(type(key) == str)
+        nick = kwargs.get('nick', keys[-1])
         self.keys.append(keys)
         self.descriptions.append(description)
         self.types.append(_type)
         my_assert(_type == type(default_value), TypeError,\
         "%s: type of the default (%s) is not %s" % (func_name(), str(type(default_value)), str(_type))) # assert the type of default
         self.defaults.append(default_value)
+        self.nicks.append(nick)
         pass
 
     def get_value(self, keys):
@@ -669,20 +678,47 @@ class JSON_OPT():
             _str += (indent+4)*' ' + "Value: %s" % str(self.values[i]) + '\n'
         return _str
 
-    def document(self, indent=0):
+    def document(self, indent=0, **kwargs):
         """
         Print the documentation of this class.
         Inputs:
             indent(int): indentation at the front
+            kwargs (dict):
+                start : from where to start. This is a option to print keys in parental
+                    classes and daughter classes separately
         Returns:
             _str(str): string output
+            todo
         """
-        _str = ''
+        _start = kwargs.get('start', 0)
+        _str = '\n' + '(Note the first number means the index, \
+while the second (in brackets) is the index relative to the parental class)'
         for i in range(len(self.keys)):
-            _str += '\n' + (indent+4)*' ' + str(self.keys[i]) + '\n'
+            if i > _start:
+                _str += '\n'+ (indent+4)*' ' + '%d (%d):' % (i, i - _start) + '\n'
+            else:
+                _str += '\n'+ (indent+4)*' ' + '%d :' % i + '\n'
+            _str += (indent+4)*' ' + str(self.keys[i]) + '\n'
+            _str += (indent+8)*' ' + "Nickname: %s" % self.nicks[i] + '\n'
             _str += (indent+8)*' ' + "Description: %s" % self.descriptions[i] + '\n'
             _str += (indent+8)*' ' + "Default value: %s" % str(self.defaults[i]) + '\n'
         return _str
+    
+    def document_str(self):
+        '''
+        Wrapper for document, call this to properly layout documentation for daughter and parental classes
+        Return:
+            document string (str)
+        '''
+        return self.document(start=self.start)
+
+    def number_of_keys(self):
+        """
+        todo
+        Returns:
+            n_keys (int): number of keys defined
+        """
+        return len(self.keys)
     
     def __call__(self, func_name):
         """
