@@ -574,10 +574,6 @@ def AveragePhaseFunctionInputs(x1, x2):
     return average
 
 
-
-
-
-
 r"""
 Classes and functions related to parsing json file as options
 """
@@ -784,3 +780,49 @@ def read_dict_recursive(_dict, list_of_keys):
     else:
         value = _dict[list_of_keys[0]]
     return value
+
+
+r"""
+Classes and functions related to post-process images
+"""
+
+class IMAGE_OPT():
+    pass
+
+def ImageMerge(im_paths, positions, **kwargs):
+    '''
+    Merge two or more plots
+    Inputs:
+        im_paths (list): list of path of image files
+        positions (list of tuple): position on the new figure
+        kwargs (dict):
+            method: which method to use
+                on_first_figure: take the first figure and lay everything on that
+                use_new_one: take a new blank figure and lay everything on that
+    '''
+    for im_path in im_paths:
+        assert(os.path.isfile(im_path))  # assert file paths
+    method = kwargs.get('method', 'on_first_figure')  # method
+    if method == 'on_first_figure':
+        # todo
+        pass
+    elif method == 'use_new_one':
+        pass
+    else:
+        raise ValueError('method must be either \"on first figure\" or \"use_new_one\"')
+    o_path = ""
+    return o_path
+
+
+def ImageClip(im_path, range, **kwargs):
+    '''
+    Clip a range from an image
+    Inputs:
+        im_path (str): a path to an image
+        range (list): list of 4,
+            x_ll (lower left), y_ll, x_ur (upper right), y_ur
+    '''
+    assert(os.path.isfile(im_path))
+    assert(len(range) == 4)  # length of range needs to be 4
+    o_path = ""
+    return o_path
