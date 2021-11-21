@@ -6,6 +6,8 @@ import inspect
 import numpy as np
 from importlib import resources
 from pathlib import Path
+from PIL import Image
+import python_scripts.Utilities as Utilities
 
 
 r'''
@@ -144,7 +146,7 @@ def get_name_and_extention(_path):
     return _name, _extension
 
 
-def string2list(inputs):
+def string2list(inputs, _type=int):
     """
     convert list input to string outputs
     """
@@ -152,7 +154,12 @@ def string2list(inputs):
     inputs = inputs.strip('[')
     inputs = inputs.strip(' ')
     outputs_str = inputs.split(',')
-    outputs = [int(i) for i in outputs_str]
+    if _type == int:
+        outputs = [int(i) for i in outputs_str]
+    elif _type == float:
+        outputs = [float(i) for i in outputs_str]
+    else:
+        raise ValueError("%s: invalid option of _type (int or float)" % func_name())
     return outputs
 
 
@@ -789,7 +796,7 @@ Classes and functions related to post-process images
 class IMAGE_OPT():
     pass
 
-def ImageMerge(im_paths, positions, **kwargs):
+def ImageMerge(im_paths, o_path, **kwargs):
     '''
     Merge two or more plots
     Inputs:
@@ -799,18 +806,30 @@ def ImageMerge(im_paths, positions, **kwargs):
             method: which method to use
                 on_first_figure: take the first figure and lay everything on that
                 use_new_one: take a new blank figure and lay everything on that
+                masks: transparency mask
     '''
+    length = len(im_paths)
     for im_path in im_paths:
         assert(os.path.isfile(im_path))  # assert file paths
     method = kwargs.get('method', 'on_first_figure')  # method
+    masks = kwargs.get('masks', [0 for i in range(length)]) # transparency
+    assert(len(masks) == length)
+    image0 = Image.open(im_paths[0])
     if method == 'on_first_figure':
         # todo
-        pass
+        new_image = Image.new('RGB',(image0.size[0], image0.size[1]),(250,250,250))
+        for i in range(length):
+            _image =  Image.open(im_paths[i])
+            if masks[i]:
+                new_image.paste(_image,(0,0), mask=_image)
+            else:
+                new_image.paste(_image,(0,0))
     elif method == 'use_new_one':
         pass
     else:
         raise ValueError('method must be either \"on first figure\" or \"use_new_one\"')
-    o_path = ""
+    new_image.save(o_path)  # save figure
+    print("%s: saved figure %s" % (Utilities.func_name(), o_path))
     return o_path
 
 

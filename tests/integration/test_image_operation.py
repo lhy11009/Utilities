@@ -45,11 +45,16 @@ def test_image_merge():
     '''
     test function ImageMerge
     '''
+    test_im_dir = os.path.join(test_dir, 'image_operation')
+    if not os.path.isdir(test_im_dir):
+        os.mkdir(test_im_dir)
+    # test 0
     file_path0 = os.path.join(source_dir, 'um_temperature000024.png')
     file_path1 = os.path.join(source_dir, 'um_frame.png')
     assert(os.path.isfile(file_path0))
     assert(os.path.isfile(file_path1))
-    o_path = ImageMerge(file_path0, file_path1)
+    o_path = os.path.join(test_im_dir, 'merge.png')
+    o_path = ImageMerge([file_path0, file_path1], o_path, masks=[0, 1])
     assert(os.path.isfile(o_path))
 
 
