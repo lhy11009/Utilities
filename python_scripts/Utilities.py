@@ -7,7 +7,6 @@ import numpy as np
 from importlib import resources
 from pathlib import Path
 from PIL import Image
-import python_scripts.Utilities as Utilities
 
 
 r'''
@@ -829,7 +828,7 @@ def ImageMerge(im_paths, o_path, **kwargs):
     else:
         raise ValueError('method must be either \"on first figure\" or \"use_new_one\"')
     new_image.save(o_path)  # save figure
-    print("%s: saved figure %s" % (Utilities.func_name(), o_path))
+    print("%s: saved figure %s" % (func_name(), o_path))
     return o_path
 
 
