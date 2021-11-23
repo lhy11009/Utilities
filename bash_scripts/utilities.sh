@@ -129,7 +129,9 @@ quit_if_fail() {
 
 
 ################################################################################
-# Define functions to work with slurm system
+# Functions to work with server on a slurm system
+################################################################################
+
 get_remote_environment(){
     # get the value of a remote environment variable
     # Inputs:
@@ -144,7 +146,6 @@ get_remote_environment(){
 EOF
 	return_value=$(tail -n 1 "${dir}/.log")
 }
-
 
 get_job_info(){
     # get info from the squeue command
@@ -202,16 +203,19 @@ parse_stdout(){
 
 
 ################################################################################
-# read keys and values from a file
-# Inputs:
-#   $1: input file, contents for this file is:
-#               key0    value0
-#               key1    value1
-#               ...
-# Outputs:
-#   keys: keys in that file
-#   values: values in that file
+# functions to read files
+################################################################################
+
 read_keys_values(){
+    # read keys and values from a file
+    # Inputs:
+    #   $1: input file, contents for this file is:
+    #               key0    value0
+    #               key1    value1
+    #               ...
+    # Outputs:
+    #   keys: keys in that file
+    #   values: values in that file
 	local filein=$1
     # check file exist
     # check_file_exist "${filein}"
@@ -229,7 +233,6 @@ read_keys_values(){
 	    [[ -z ${values} ]] && values=("$temp") || values+=("$temp")
     done < "${filein}"
 }
-
 
 read_log(){
 	# read a log file
@@ -259,6 +262,31 @@ read_log(){
 	return 0
 }
 
+util_read_job_info_from_ps(){
+    # read job id and name from the "ps" command
+    # Inputs:
+    #   $1: key word
+    # Outputs:
+    #   ${job_ids}: ids of the results
+    [[ -n $1 ]] || { cecho ${BAD} "${FUNCNAME[0]}: no key"; exit 1; }
+    local_ps_outputs=$(ps --format="%p %a" -ax | grep -e "$1" )
+    # echo "${local_ps_outputs}"  # debug
+    IFS=" "; local entries=(${local_ps_outputs})
+    job_ids=()
+    local last_id
+    # include every job_id except for the last one
+    for entry in ${entries[@]}; do
+        if [[ ${entry} =~ ^[0-9]+$ ]]; then
+	    [[ -n ${last_id} ]] && job_ids+=("${last_id}")
+            last_id="${entry}"
+	fi
+    done
+}
+
+
+################################################################################
+# functions to write files
+################################################################################
 
 write_log_header(){
 	# write a header to a log file
@@ -267,7 +295,6 @@ write_log_header(){
 	local log_file=$1
 	echo "job_dir job_id ST last_time_step last_time" > "${log_file}"
 }
-
 
 write_log(){
     # write to a log file
@@ -303,7 +330,6 @@ write_log(){
     echo "${job_dir} ${job_id} ${ST} ${last_time_step} ${last_time}" >> "${log_file}"
 }
 
-
 clean_log(){
     # remove the record of "${case_dir}" from record
     # Inputs:
@@ -324,69 +350,12 @@ clean_log(){
     [[ ${_find} -eq 1 ]] && eval "sed -in '${flag}'d ${log_file}"  # eliminate the line of "${case_dir}"
 }
 
-util_read_job_info_from_ps(){
-    # read job id and name from the "ps" command
-    # Inputs:
-    #   $1: key word
-    # Outputs:
-    #   ${job_ids}: ids of the results
-    [[ -n $1 ]] || { cecho ${BAD} "${FUNCNAME[0]}: no key"; exit 1; }
-    local_ps_outputs=$(ps --format="%p %a" -ax | grep -e "$1" )
-    # echo "${local_ps_outputs}"  # debug
-    IFS=" "; local entries=(${local_ps_outputs})
-    job_ids=()
-    local last_id
-    # include every job_id except for the last one
-    for entry in ${entries[@]}; do
-        if [[ ${entry} =~ ^[0-9]+$ ]]; then
-	    [[ -n ${last_id} ]] && job_ids+=("${last_id}")
-            last_id="${entry}"
-	fi
-    done
-}
-
-################################################################################
-# convert time to hours
-# Inputs:
-#   $1: time with the format of hrs:minutes:seconds:
-# Outputs:
-#   convert_time_to_hrs_o: time in unit of hour
-convert_time_to_hrs(){
-    # expand time
-
-    # deal with day part
-    local hrs_mins_seconds; local time_array; local day; local hour; local minute; local second
-    IFS='-'; time_array=(${1})
-    if [[ ${#time_array[@]} -eq 1 ]]; then
-        day=0.0; hrs_mins_seconds=${time_array[0]}
-    elif [[ ${#time_array[@]} -eq 2 ]]; then
-        day=${time_array[0]}; hrs_mins_seconds=${time_array[1]}
-    else
-        cecho ${BAD} "${FUNCNAME[0]}: length of the output from string input must be 1 or 2 instead of ${#time_array[@]}"
-    fi
-
-    # deal with hrs:mins:seconds part
-    unset time_array
-    IFS=':'; time_array=(${hrs_mins_seconds})
-    if [[ ${#time_array[@]} -eq 2 ]]; then
-        hour=0.0; minute=${time_array[0]}; second=${time_array[1]}
-    elif [[ ${#time_array[@]} -eq 3 ]]; then
-        hour=${time_array[0]}; minute=${time_array[1]}; second=${time_array[2]}
-    else
-        cecho ${BAD} "${FUNCNAME[0]}: length of the output from string input must be 2 or 3 instead of ${#time_array[@]}"
-    fi
-
-    # compute time in hrs
-    convert_time_to_hrs_o=$(echo "scale=4; (${day}*24.0)+${hour}+(${minute}/60.0)+(${second}/3600.0)" | bc)
-}
-
-################################################################################
-# write time and machine time output to a file
-# Inputs:
-    #   $1: job directory
-    #   $2: job id
-    #   $3: log file
 write_time_log(){
+    # write time and machine time output to a file
+    # Inputs:
+        #   $1: job directory
+        #   $2: job id
+        #   $3: log file
     local job_dir=$1
     local job_id=$2
     local log_file=$3
@@ -442,6 +411,46 @@ write_time_log(){
     return 0
 }
 
+
+################################################################################
+# functions for converting units
+################################################################################
+
+convert_time_to_hrs(){
+    # convert time to hours
+    # Inputs:
+    #   $1: time with the format of hrs:minutes:seconds:
+    # Outputs:
+    #   convert_time_to_hrs_o: time in unit of hour
+    # expand time
+
+    # deal with day part
+    local hrs_mins_seconds; local time_array; local day; local hour; local minute; local second
+    IFS='-'; time_array=(${1})
+    if [[ ${#time_array[@]} -eq 1 ]]; then
+        day=0.0; hrs_mins_seconds=${time_array[0]}
+    elif [[ ${#time_array[@]} -eq 2 ]]; then
+        day=${time_array[0]}; hrs_mins_seconds=${time_array[1]}
+    else
+        cecho ${BAD} "${FUNCNAME[0]}: length of the output from string input must be 1 or 2 instead of ${#time_array[@]}"
+    fi
+
+    # deal with hrs:mins:seconds part
+    unset time_array
+    IFS=':'; time_array=(${hrs_mins_seconds})
+    if [[ ${#time_array[@]} -eq 2 ]]; then
+        hour=0.0; minute=${time_array[0]}; second=${time_array[1]}
+    elif [[ ${#time_array[@]} -eq 3 ]]; then
+        hour=${time_array[0]}; minute=${time_array[1]}; second=${time_array[2]}
+    else
+        cecho ${BAD} "${FUNCNAME[0]}: length of the output from string input must be 2 or 3 instead of ${#time_array[@]}"
+    fi
+
+    # compute time in hrs
+    convert_time_to_hrs_o=$(echo "scale=4; (${day}*24.0)+${hour}+(${minute}/60.0)+(${second}/3600.0)" | bc)
+}
+
+
 ################################################################################
 # generate message for a tests
 # Inputs:
@@ -471,12 +480,15 @@ check_variable(){
 
 
 ################################################################################
-# compare the contents of two outputs
-# Inputs:
-#   $1: function
-#   $2: standard output
-#   $3: output
+# functions to do tests
+################################################################################
+
 compare_outputs(){
+    # compare the contents of two outputs
+    # Inputs:
+    #   $1: function
+    #   $2: standard output
+    #   $3: output
     if ! [[ $2 = "$3" ]]; then
         cecho ${BAD} "$1 failed: output - ${3} is different from standard one - ${2}"
         return 1
@@ -484,16 +496,14 @@ compare_outputs(){
     return 0
 }
 
-
-################################################################################
-# compare the contents of two files
-# Inputs:
-#   $1: function
-#   $2: standard file
-#   $3: output file
-# Operations:
-#   exit if file doesn't exist
 compare_files(){
+    # compare the contents of two files
+    # Inputs:
+    #   $1: function
+    #   $2: standard file
+    #   $3: output file
+    # Operations:
+    #   exit if file doesn't exist
     # check file existence
     [[ -e $2 ]] || { cecho ${BAD} "${FUNCNAME[0]}: file $2 doesn't exist"; exit 1; }
     [[ -e $3 ]] || { cecho ${BAD} "${FUNCNAME[0]}: file $3 doesn't exist"; exit 1; }
@@ -509,13 +519,15 @@ compare_files(){
 
 
 ################################################################################
-# translate from a bash array to a python array-like output
-# Inputs:
-#   bash_array
-# Output
-#   python_array_like
+# functions to work with python
+################################################################################
 bash_to_python_array()
 {
+    # translate from a bash array to a python array-like output
+    # Inputs:
+    #   bash_array
+    # Output
+    #   python_array_like
     # fisrt append a '['
     python_array_like="["
 
@@ -533,16 +545,14 @@ bash_to_python_array()
     return 0
 }
 
-
-################################################################################
-# translate from a a python array-like string to a bash array
-# currently no ' ', '[' and ']'is allowed to exist in values
-# Inputs:
-#   python_array_like
-# Output:
-#   bash_array
 python_to_bash_array()
 {
+    # translate from a a python array-like string to a bash array
+    # currently no ' ', '[' and ']'is allowed to exist in values
+    # Inputs:
+    #   python_array_like
+    # Output:
+    #   bash_array
     # unset output
     unset bash_array
 
