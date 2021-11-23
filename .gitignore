@@ -137,7 +137,6 @@ temp.*
 __pycache__/
 
 # figures
-*.png
 
 # diff&patch files
 *.diff

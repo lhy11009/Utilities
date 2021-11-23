@@ -1,0 +1,22 @@
+{
+    "figures": [
+        {
+            "path": "tests/integration/fixtures/image_operation/um_temperature000024.png"
+        },
+        {
+            "path": "tests/integration/fixtures/image_operation/um_frame.png",
+            "operation": "paste",
+            "mask": 1,
+            "resize": 1.0,
+            "position": [124, 331],
+            "save path": ".test/image_operation/pillow_merge.png",
+            "temp" : 1
+        },
+        {
+            "path": ".test/image_operation/merge.png",
+            "operation": "crop",
+            "position": [124, 331, 1000, 900],
+            "save path": ".test/image_operation/pillow_merge_crop.png"
+        }
+    ]
+}

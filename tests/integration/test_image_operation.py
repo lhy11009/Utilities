@@ -27,7 +27,7 @@ import os
 # import shilofue.Foo as Foo  # import test module
 # from matplotlib import pyplot as plt
 # from shutil import rmtree  # for remove directories
-from python_scripts.Utilities import ImageMerge, func_name, IMAGE_OPT
+from python_scripts.Utilities import ImageMerge, PillowRun, func_name, IMAGE_OPT, PILLOW_OPT
 
 test_dir = ".test"
 source_dir = os.path.join(os.path.dirname(__file__), 'fixtures', 'image_operation')
@@ -73,8 +73,31 @@ def test_image_option():
     '''
     json_path = os.path.join(source_dir, 'figure_option.json')
     assert(os.path.isfile(json_path))
-    image_opt = IMAGE_OPT()
-    image_opt.read_json(json_path)
+    pillow_opt = PILLOW_OPT()
+    pillow_opt.read_json(json_path)
+    assert(len(pillow_opt.values) == 1)
+    assert(len(pillow_opt.values[0]) == 3)
+    assert(pillow_opt.values[0][0].values ==\
+        ['tests/integration/fixtures/image_operation/um_temperature000024.png',\
+            'new', 0, 1.0, [0, 0], '', 'on_first_figure', 0])
+
+
+def test_pillow_run():
+    '''
+    test the pillow run function
+    '''
+    json_path = os.path.join(source_dir, 'figure_option.json')
+    assert(os.path.isfile(json_path))
+    o_paths = [".test/image_operation/pillow_merge.png",\
+        ".test/image_operation/pillow_merge_crop.png"]
+    for o_path in o_paths:
+        if os.path.isfile(o_path):
+            os.remove(o_path)  # remove old files
+    pillow_opt = PILLOW_OPT()
+    pillow_opt.read_json(json_path)
+    PillowRun(*pillow_opt.to_pillow_run())
+    assert(not os.path.isfile(o_paths[0]))  # assert intermediate results deleted
+    assert(os.path.isfile(o_paths[1]))  # assert file generation
 
     
 # notes

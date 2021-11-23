@@ -598,6 +598,7 @@ class JSON_OPT():
     def __init__(self):
         """
         Initiation
+        todo
         """
         self.keys = []
         self.descriptions = []
@@ -606,8 +607,7 @@ class JSON_OPT():
         self.defaults = []
         self.nicks = []
         self.start = 0
-        self.features = {}
-        pass
+
 
     def read_json(self, _path):
         """
@@ -630,23 +630,28 @@ class JSON_OPT():
         """
         assert(type(options)==dict)
         for i in range(len(self.keys)):
-            try:
-                value = read_dict_recursive(options, self.keys[i])
-            except KeyError:
-                value = self.defaults[i]
-            my_assert(type(value) == self.types[i], TypeError,\
-            "%s: type of the default (%s) is not %s" % (func_name(), str(type(value)), str(self.types[i]))) # assert the type of value
-            self.values.append(value)
-        # append features, todo
-        for key, value in self.features.items():
-            try:
-                feature_options = options[key]
-            except KeyError:
-                pass
+            if type(self.types[i]) == tuple:
+                # this is a feature
+                try:
+                    feature_options = read_dict_recursive(options, self.keys[i])
+                except KeyError:
+                    pass
+                else:
+                    # note that self.types[i][1] is the class of sub-opitions
+                    assert(type(feature_options) == list)
+                    for feature_option in feature_options:
+                        self.values[i].append(\
+                            create_option_object(self.types[i][1], feature_option)\
+                                )
             else:
-                self.features[key].append(\
-                    create_option_object(self.feature_classes, feature_options)\
-                        )
+                # this is a variable
+                try:
+                    value = read_dict_recursive(options, self.keys[i])
+                except KeyError:
+                    value = self.defaults[i]
+                my_assert(type(value) == self.types[i], TypeError,\
+                "%s: type of the default (%s) is not %s" % (func_name(), str(type(value)), str(self.types[i]))) # assert the type of value
+                self.values.append(value)
         self.check()
 
     def check(self):
@@ -677,18 +682,25 @@ class JSON_OPT():
         self.nicks.append(nick)
         pass
 
-    def add_features(self, description, name, SUB_OPT):
+    def add_features(self, description, keys, SUB_OPT, **kwargs):
         """
+        todo
         add a feature, which shows as a list in the json file.
         Inputs:
             description (str)
-            name (str): name of this feature
+            keys (list): a list of keys from the top level
             SUB_OPT: a sub-class of JSON_OPT for storing options of
                 individual features
+            kwargs (dict):
+                nick (str): nickname
         """
-        self.features[name] = []
-        self.feature_description[name] = description
-        self.feature_classes[name] = SUB_OPT
+        nick = kwargs.get('nick', keys[-1])
+        self.keys.append(keys)
+        self.values.append([])  # initiate a vacant list
+        self.descriptions.append(description)
+        self.types.append(("feature", SUB_OPT))
+        self.defaults.append(None) # this is not used
+        self.nicks.append(nick)
 
     def get_value(self, keys):
         """
@@ -848,20 +860,48 @@ class IMAGE_OPT(JSON_OPT):
         """
         Initiation
         """
+        JSON_OPT.__init__(self)
         self.add_key("Path to the file", str, ["path"], "foo.png", nick='image_path')
-        self.add_key("Operation to do", str, ["operation"], "copy", nick='operation')
+        self.add_key("Operation to do", str, ["operation"], "new", nick='operation')
         self.add_key("Whether to create a mask (0 or 1)", int, ["mask"], 0, nick='mask')
         self.add_key("A scale to resize", float, ["resize"], 1.0, nick='resize')
-        self.add_key("A position to put on the new figure", list, ["position"], 1.0, nick='position')
-        self.add_key("A path to save the figure", str, ["save path"], 1.0, nick='save_path')
+        self.add_key("A position to put on the new figure", list, ["position"], [0, 0], nick='position')
+        self.add_key("A path to save the figure", str, ["save path"], "", nick='save_path')
+        self.add_key("Method to use", str, ["method"], "on_first_figure", nick='method')
+        self.add_key("Whether this is a intermediate result to be removed",\
+             int, ["temp"], 0, nick='is_temp')
     
     def check(self):
         """
         check values
         """
-        assert(os.path.isfile(self.values[0]))
-        assert(self.values[1] in ["copy", "paste", "crop"])
-        assert(self.values[2] in [0, 1])
+        my_assert(os.path.isfile(self.values[0]), FileExistsError,\
+            "%s: file %s doesn't exist" % (func_name(), self.values[0]))
+        assert(self.values[1] in ["new", "paste", "crop"])
+        if self.values[1] == "paste":
+            assert(len(self.values[4]) == 2)  # assert positon has the correct length
+        elif self.values[1] == "crop":
+            assert(len(self.values[4]) == 4)
+        assert(self.values[2] in [0, 1])  # mask is a bool value
+        for i in self.values[4]:
+            assert(type(i) == int)
+        assert(self.values[7] in [0, 1])  # is_temp is a bool value
+        if self.values[5] == "":
+            assert(self.values[7] == 0)  # if not saving, no mark on intermediate result
+    
+    def to_pillow_run(self):
+        '''
+        interface to the PillowRun function
+        '''
+        im_path = self.values[0]
+        operation = self.values[1]
+        resize = self.values[3]
+        position = self.values[4]
+        mask = self.values[2]
+        method = self.values[6]
+        save = self.values[5]
+        is_temp = self.values[7]
+        return im_path, operation, resize, position, mask, method, save, is_temp
 
 
 class PILLOW_OPT(JSON_OPT):
@@ -873,8 +913,35 @@ class PILLOW_OPT(JSON_OPT):
         """
         Initiation
         """
-        self.add_features("Figures to operate with", "figures", IMAGE_OPT)
+        JSON_OPT.__init__(self)
+        self.add_features("Figures to operate with", ["figures"], IMAGE_OPT)
         pass
+
+    def to_pillow_run(self):
+        '''
+        interface to the PillowRun function
+        todo
+        '''
+        im_paths = []
+        operations = []
+        resizes = []
+        positions = []
+        masks = []
+        methods = []
+        saves = []
+        is_temps = []
+        for feature in self.values[0]:
+            im_path, operation, resize, position, mask, method, save, is_temp =\
+                feature.to_pillow_run()
+            im_paths.append(im_path)
+            operations.append(operation)
+            resizes.append(resize)
+            positions.append(position)
+            masks.append(mask)
+            methods.append(method)
+            saves.append(save)
+            is_temps.append(is_temp)
+        return im_paths, operations, resizes, positions, masks, methods, saves, is_temps
 
 
 def ImageMerge(im_paths, **kwargs):
@@ -909,7 +976,6 @@ def ImageMerge0(im_paths, method, masks, resizes, positions):
     assert(len(masks) == length)
     assert(len(resizes) == length)
     image0 = Image.open(im_paths[0])
-    print(image0.size)  # debug
     if method == 'on_first_figure':
         new_image = Image.new('RGB',(image0.size[0], image0.size[1]),(250,250,250))
         new_image.paste(image0, [0, 0])  # paste first figure
@@ -926,3 +992,43 @@ def ImageMerge0(im_paths, method, masks, resizes, positions):
     else:
         raise ValueError('method must be either \"on first figure\" or \"use_new_one\"')
     return new_image
+
+
+def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, is_temps):
+    '''
+    Image operation with pillow
+    Inputs:
+        im_paths (list): list of path of image files
+        operations (list of str): operations to perform
+        resizes (list of float): scale to resize to
+        positions (list of tuple): position on the new figure
+        masks: transparency mask
+        methods: which method to use
+            on_first_figure: take the first figure and lay everything on that
+            use_new_one: take a new blank figure and lay everything on that
+        saves (list of str): paths to save figure
+        is_temps(list of int): whether to remove intermediate results
+    todo
+    '''
+    i = 0
+    for im_path in im_paths:
+        if operations[i] == 'new':
+            last = im_path
+            new_image = Image.open(im_path)
+        elif operations[i] == 'paste':
+            new_image = ImageMerge0([last, im_path], methods[i], (0, masks[i]), (1.0, resizes[i]), ((0.0, 0.0), positions[i]))
+        elif operations[i] == 'crop':
+            new_image = Image.open(im_path)
+            new_image = new_image.crop(positions[i])
+        else:
+            raise ValueError('operation must be in [new, paste, crop]')
+        if saves[i] != '':
+            if is_temps[i] == 0:
+                print("%s: save figure %s" % (func_name(), saves[i]))
+            new_image.save(saves[i]) # save image
+        i += 1
+    i = 0
+    for save_path in saves:
+        if is_temps[i] == 1:
+            os.remove(save_path)  # remove intermediate results
+        i += 1
