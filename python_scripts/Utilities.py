@@ -6,7 +6,7 @@ import inspect
 import numpy as np
 from importlib import resources
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 r'''
@@ -559,7 +559,6 @@ def PhaseFunction(x):
 
 def AveragePhaseFunctionInputs(x1, x2):
     """
-    todo
     Average phase function value
     """
     my_assert(x1.shape == x2.shape, ValueError, "Inputs(x1 and x2) need to be arrays of the same shape")
@@ -607,6 +606,7 @@ class JSON_OPT():
         self.defaults = []
         self.nicks = []
         self.start = 0
+        self.features = {}
         pass
 
     def read_json(self, _path):
@@ -619,6 +619,16 @@ class JSON_OPT():
         print("    Read options from json file: %s" % _path)
         with open(_path, 'r') as fin:
             options = json.load(fin)
+        self.import_options(options)
+
+    def import_options(self, options):
+        """
+        todo
+        Import options from a dictionary and then check the values
+        Inputs:
+            options (dict): dictionary of options
+        """
+        assert(type(options)==dict)
         for i in range(len(self.keys)):
             try:
                 value = read_dict_recursive(options, self.keys[i])
@@ -627,6 +637,16 @@ class JSON_OPT():
             my_assert(type(value) == self.types[i], TypeError,\
             "%s: type of the default (%s) is not %s" % (func_name(), str(type(value)), str(self.types[i]))) # assert the type of value
             self.values.append(value)
+        # append features, todo
+        for key, value in self.features.items():
+            try:
+                feature_options = options[key]
+            except KeyError:
+                pass
+            else:
+                self.features[key].append(\
+                    create_option_object(self.feature_classes, feature_options)\
+                        )
         self.check()
 
     def check(self):
@@ -656,6 +676,19 @@ class JSON_OPT():
         self.defaults.append(default_value)
         self.nicks.append(nick)
         pass
+
+    def add_features(self, description, name, SUB_OPT):
+        """
+        add a feature, which shows as a list in the json file.
+        Inputs:
+            description (str)
+            name (str): name of this feature
+            SUB_OPT: a sub-class of JSON_OPT for storing options of
+                individual features
+        """
+        self.features[name] = []
+        self.feature_description[name] = description
+        self.feature_classes[name] = SUB_OPT
 
     def get_value(self, keys):
         """
@@ -690,7 +723,6 @@ class JSON_OPT():
                     classes and daughter classes separately
         Returns:
             _str(str): string output
-            todo
         """
         _start = kwargs.get('start', 0)
         _str = '\n' + '(Note the first number means the index, \
@@ -716,7 +748,6 @@ while the second (in brackets) is the index relative to the parental class)'
 
     def number_of_keys(self):
         """
-        todo
         Returns:
             n_keys (int): number of keys defined
         """
@@ -729,6 +760,22 @@ while the second (in brackets) is the index relative to the parental class)'
         Implement in daughter classes
         """
         pass
+
+
+def create_option_object(OPT, options):
+    """
+    create an object with the intended options    
+    todo
+    Inputs:
+        OPT (class inherits JSON_OPT)
+        options (dict)
+    Return:
+        obt (an instantiation of OPT) - object containing the right options
+    """
+    assert(type(options)==dict)
+    obt = OPT()
+    obt.import_options(options)
+    return obt
 
 
 def show_all_options(_path):
@@ -792,10 +839,45 @@ r"""
 Classes and functions related to post-process images
 """
 
-class IMAGE_OPT():
-    pass
+class IMAGE_OPT(JSON_OPT):
+    '''
+    todo
+    class to hold options for individual images
+    '''
+    def __init__(self):
+        """
+        Initiation
+        """
+        self.add_key("Path to the file", str, ["path"], "foo.png", nick='image_path')
+        self.add_key("Operation to do", str, ["operation"], "copy", nick='operation')
+        self.add_key("Whether to create a mask (0 or 1)", int, ["mask"], 0, nick='mask')
+        self.add_key("A scale to resize", float, ["resize"], 1.0, nick='resize')
+        self.add_key("A position to put on the new figure", list, ["position"], 1.0, nick='position')
+        self.add_key("A path to save the figure", str, ["save path"], 1.0, nick='save_path')
+    
+    def check(self):
+        """
+        check values
+        """
+        assert(os.path.isfile(self.values[0]))
+        assert(self.values[1] in ["copy", "paste", "crop"])
+        assert(self.values[2] in [0, 1])
 
-def ImageMerge(im_paths, o_path, **kwargs):
+
+class PILLOW_OPT(JSON_OPT):
+    '''
+    todo
+    class to hold options for using pillow to operation on images
+    '''
+    def __init__(self):
+        """
+        Initiation
+        """
+        self.add_features("Figures to operate with", "figures", IMAGE_OPT)
+        pass
+
+
+def ImageMerge(im_paths, **kwargs):
     '''
     Merge two or more plots
     Inputs:
@@ -811,36 +893,36 @@ def ImageMerge(im_paths, o_path, **kwargs):
     for im_path in im_paths:
         assert(os.path.isfile(im_path))  # assert file paths
     method = kwargs.get('method', 'on_first_figure')  # method
-    masks = kwargs.get('masks', [0 for i in range(length)]) # transparency
+    masks = kwargs.get('mask', [0 for i in range(length)]) # transparency
+    resizes = kwargs.get('resize', [1.0 for i in range(length)])
+    positions = kwargs.get('position', [(0, 0) for i in range(length)])
+
+    new_image = ImageMerge0(im_paths, method, masks, resizes, positions)
+    return new_image
+
+
+def ImageMerge0(im_paths, method, masks, resizes, positions):
+    '''
+    Merge two or more plots
+    '''
+    length = len(im_paths)
     assert(len(masks) == length)
+    assert(len(resizes) == length)
     image0 = Image.open(im_paths[0])
+    print(image0.size)  # debug
     if method == 'on_first_figure':
-        # todo
         new_image = Image.new('RGB',(image0.size[0], image0.size[1]),(250,250,250))
-        for i in range(length):
+        new_image.paste(image0, [0, 0])  # paste first figure
+        for i in range(1, length):
             _image =  Image.open(im_paths[i])
+            size = [ int(v * resizes[i]) for v in _image.size ]  # resize
+            _image = _image.resize(size)
             if masks[i]:
-                new_image.paste(_image,(0,0), mask=_image)
+                new_image.paste(_image, positions[i], mask=_image)
             else:
-                new_image.paste(_image,(0,0))
+                new_image.paste(_image, positions[i])
     elif method == 'use_new_one':
         pass
     else:
         raise ValueError('method must be either \"on first figure\" or \"use_new_one\"')
-    new_image.save(o_path)  # save figure
-    print("%s: saved figure %s" % (func_name(), o_path))
-    return o_path
-
-
-def ImageClip(im_path, range, **kwargs):
-    '''
-    Clip a range from an image
-    Inputs:
-        im_path (str): a path to an image
-        range (list): list of 4,
-            x_ll (lower left), y_ll, x_ur (upper right), y_ur
-    '''
-    assert(os.path.isfile(im_path))
-    assert(len(range) == 4)  # length of range needs to be 4
-    o_path = ""
-    return o_path
+    return new_image
