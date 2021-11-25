@@ -411,6 +411,34 @@ write_time_log(){
     return 0
 }
 
+util_substitute_prm_file_contents(){
+    # rewrite prm, substitue key with value
+    # the lines to substitute are like:
+    #   set key = value
+    # Inputs:
+    #   $1: file
+    #   $2: key
+    #   $3: value
+    # Outputs:
+    #   use the variable "return_values" to return
+    local filename="$1"
+    local key="$2"
+    local value="$3"
+    local contents=""  # initiate as vacant
+    local first_line="true"
+    while IFS= read -r line; do
+        IFS='='; local inputs=(${line})
+        newline="${line}"
+        if ((${#inputs[@]}==2)); then
+            [[ ${inputs[0]} =~ "${key}" ]] && newline="${inputs[0]}= ${value}"
+        fi
+        [[ ${first_line} == "true" ]] && first_line="false" || contents="${contents}\n"
+        contents="${contents}${newline}"
+    done < "${filename}"
+    return_values="${contents}"
+    return 0
+}
+
 
 ################################################################################
 # functions for converting units
@@ -614,44 +642,6 @@ read_json_file()
     return 0
 }
 
-
-################################################################################
-# parse from a stdout file from aspect
-# Inputs:
-#   $1(str): filename
-#   $2(int): time step number
-# Outputs:
-#   content: content of timestep
-parse_stdout1()
-{
-    # unset output variables
-    unset content
-
-    # find lines in file
-    local grep_output; local grep_output_array; local next_step;
-    local index0; local index1
-    IFS=":"
-    # find start line
-    grep_output=$(grep -n "Timestep $2" "$1")
-    grep_output_array=(${grep_output})
-    index0=${grep_output_array[0]}
-    [[ -z ${index0} ]] && { echo "${FUNCNAME[0]}: hit end of the file - $1"; return 1; }
-    # find end line
-    ((next_step=$2+1))
-    grep_output=$(grep -n "Timestep ${next_step}" "$1")
-    grep_output_array=(${grep_output})
-    index1=${grep_output_array[0]}
-    [[ -z ${index1} ]] && cecho ${WARN} "${FUNCNAME[0]}: cannot find end line, will take end of the file" || ((index1-=1))
-
-    # read file
-    if [[ -n ${index1} ]]; then
-        content=$(sed -n "${index0},${index1}"p  $1)
-    else
-        content=$(sed -n "${index0}"p  $1)
-    fi
-
-    return 0
-}
 
 
 ################################################################################
