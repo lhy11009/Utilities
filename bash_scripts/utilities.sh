@@ -614,7 +614,7 @@ read_json_file()
 
     # read from file
     # sed is used to get rid of "
-    eval "cat ${filein} | JSON.sh | sed 's/\"//g' > ./temp"
+    eval "cat ${filein} | ${dir}/JSON.sh | sed 's/\"//g' > ./temp"
 
     # construct pattern
     local i=0
