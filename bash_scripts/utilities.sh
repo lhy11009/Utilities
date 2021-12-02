@@ -283,6 +283,134 @@ util_read_job_info_from_ps(){
     done
 }
 
+read_json_file()
+{
+    # read options from a json file
+    # Inputs:
+    #   filein: a json file
+    #   keys: an array of keys in json file
+    #   is_array: whether we want to parse an array
+    # Outputs:
+    #   value: value recorded in json file
+        # unset output variables
+        unset value
+
+    # check inputs
+    [[ -e ${filein} && ${filein} =~ ".json" ]] || { cecho ${BAD} "${FUNCNAME[0]} filein must be a json file"; exit 1; }
+    [[ -z ${keys} ]] && { cecho ${BAD} "${FUNCNAME[0} keys cannot be vacant"; exit 1; }
+    [[ -z ${is_array} ]] && is_array="false"
+    [[ ${is_array} = "true" || ${is_array} = "false" ]] || { cecho ${BAD} "${FUNCNAME[0]}: is_araay must be true or false"; exit 1; }
+
+    # set IFS, so that we split string by " "
+    IFS=" "
+
+    # read from file
+    # sed is used to get rid of "
+    eval "cat ${filein} | ${dir}/JSON.sh | sed 's/\"//g' > ./temp"
+
+    # construct pattern
+    local i=0
+    local pattern=""
+    for key in ${keys[@]}; do
+        (( i > 0 )) && pattern="${pattern},"
+        pattern="${pattern}${key}"
+        ((i++))
+    done
+
+    # grep for pattern
+    local second_part=$(grep -F "[${pattern}]" temp | sed -E "s/\[${pattern}\](\t|\ )*//g")
+    if [[ ${is_array} = "true" ]]; then
+        python_array_like=${second_part}
+        python_to_bash_array
+        value=("${bash_array[@]}")
+    else
+        # find pattern, then split the line
+        value=${second_part}
+    fi
+
+    # unset input variables
+    unset is_array
+
+    return 0
+}
+
+
+parse_block_outputs()
+{
+    # parse blocks of outputs, start with a key word and end with vacant line
+    # Inputs:
+    #   $1(str): content
+    #   $2(str): key word
+    # Outputs:
+    #   block_outputs(array): an array of blocks of content
+    # e.g.:
+    #   parse_block_outputs "${content}" "Rebuilding Stokes"
+    local content=$1
+    local key=$2
+
+    # unset outputs
+    block_outputs=()
+
+    # parse
+    local output=''
+    local start=0
+    while IFS= read -r line; do
+        if [[ ${start} -eq 0 ]]; then
+            # hit next info
+            # start to read
+            # read line to output
+            [[ ${line} =~ "${key}" ]] && { start=1; output="${output} ${line}"; }
+        else
+            if [[ ${line} = '' ]]; then
+                # hit vacant line
+                # append to outputs and reset output
+                # undo start, wait for next info
+                block_outputs+=("${output}")
+                output=''
+                start=0
+            else
+                # read to output
+                output="${output} ${line}"
+            fi
+        fi
+    done <<< "${content}"
+    return 0
+}
+
+
+parse_output_value(){
+    # Parse value in output with a key and a pair of diliminiter
+    # Inputs:
+    #   $1(str): content
+    #   $2(str): key
+    #   $3(str): deliminiter in front, default is ,
+    #   $4(str): deliminiter at the back, default is ,
+    local content=$1
+    local key=$2
+    local dlm; local dlm1
+    [[ -n $3 ]] && dlm=$3 || dlm=","
+#    [[ -n $4 ]] && dlm1=$4 || dlm1=","
+    dlm1=$4
+
+    # reset output
+    unset value
+
+    # get value
+    # return vacant string if key not found
+    [[ ${content} =~ ${key} ]] || { value=""; return 0; }
+    # get value otherwise
+    local temp
+    temp=${content#*"${key}"*"${dlm}"[ ]*}
+    [[ -n $dlm1 ]] && value=${temp%%["${dlm1}"]**} || value=${temp}
+    return 0
+}
+
+
+read_header_file_header(){
+    # Read the header and give a index back
+    # todo
+    return 0
+}
 
 ################################################################################
 # functions to write files
@@ -590,131 +718,8 @@ python_to_bash_array()
 }
 
 
-################################################################################
-# read options from a json file
-# Inputs:
-#   filein: a json file
-#   keys: an array of keys in json file
-#   is_array: whether we want to parse an array
-# Outputs:
-#   value: value recorded in json file
-read_json_file()
-{
-    # unset output variables
-    unset value
-
-    # check inputs
-    [[ -e ${filein} && ${filein} =~ ".json" ]] || { cecho ${BAD} "${FUNCNAME[0]} filein must be a json file"; exit 1; }
-    [[ -z ${keys} ]] && { cecho ${BAD} "${FUNCNAME[0} keys cannot be vacant"; exit 1; }
-    [[ -z ${is_array} ]] && is_array="false"
-    [[ ${is_array} = "true" || ${is_array} = "false" ]] || { cecho ${BAD} "${FUNCNAME[0]}: is_araay must be true or false"; exit 1; }
-
-    # set IFS, so that we split string by " "
-    IFS=" "
-
-    # read from file
-    # sed is used to get rid of "
-    eval "cat ${filein} | ${dir}/JSON.sh | sed 's/\"//g' > ./temp"
-
-    # construct pattern
-    local i=0
-    local pattern=""
-    for key in ${keys[@]}; do
-        (( i > 0 )) && pattern="${pattern},"
-        pattern="${pattern}${key}"
-        ((i++))
-    done
-
-    # grep for pattern
-    local second_part=$(grep -F "[${pattern}]" temp | sed -E "s/\[${pattern}\](\t|\ )*//g")
-    if [[ ${is_array} = "true" ]]; then
-        python_array_like=${second_part}
-        python_to_bash_array
-        value=("${bash_array[@]}")
-    else
-        # find pattern, then split the line
-        value=${second_part}
-    fi
-
-    # unset input variables
-    unset is_array
-
-    return 0
-}
 
 
-
-################################################################################
-# parse blocks of outputs, start with a key word and end with vacant line
-# Inputs:
-#   $1(str): content
-#   $2(str): key word
-# Outputs:
-#   block_outputs(array): an array of blocks of content
-# e.g.:
-#   parse_block_outputs "${content}" "Rebuilding Stokes"
-parse_block_outputs()
-{
-    local content=$1
-    local key=$2
-
-    # unset outputs
-    block_outputs=()
-
-    # parse
-    local output=''
-    local start=0
-    while IFS= read -r line; do
-        if [[ ${start} -eq 0 ]]; then
-            # hit next info
-            # start to read
-            # read line to output
-            [[ ${line} =~ "${key}" ]] && { start=1; output="${output} ${line}"; }
-        else
-            if [[ ${line} = '' ]]; then
-                # hit vacant line
-                # append to outputs and reset output
-                # undo start, wait for next info
-                block_outputs+=("${output}")
-                output=''
-                start=0
-            else
-                # read to output
-                output="${output} ${line}"
-            fi
-        fi
-    done <<< "${content}"
-    return 0
-}
-
-
-################################################################################
-# Parse value in output with a key and a pair of diliminiter
-# Inputs:
-#   $1(str): content
-#   $2(str): key
-#   $3(str): deliminiter in front, default is ,
-#   $4(str): deliminiter at the back, default is ,
-parse_output_value(){
-    local content=$1
-    local key=$2
-    local dlm; local dlm1
-    [[ -n $3 ]] && dlm=$3 || dlm=","
-#    [[ -n $4 ]] && dlm1=$4 || dlm1=","
-    dlm1=$4
-
-    # reset output
-    unset value
-
-    # get value
-    # return vacant string if key not found
-    [[ ${content} =~ ${key} ]] || { value=""; return 0; }
-    # get value otherwise
-    local temp
-    temp=${content#*"${key}"*"${dlm}"[ ]*}
-    [[ -n $dlm1 ]] && value=${temp%%["${dlm1}"]**} || value=${temp}
-    return 0
-}
 
 
 
