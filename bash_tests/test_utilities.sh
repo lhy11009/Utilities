@@ -330,9 +330,9 @@ test_util_write_file_with_header(){
     file_path_std="${test_source_dir}/file_with_header_std"
     [[ -e ${file_path_std} ]] || cecho "${BAD}" "${file_path_std} doesn't exist"
     headers=("header0" "header1" "header2")
-    data0=(0 1 2)
-    data1=(1 2 3)
-    data2=(2 3 4)
+    data0=(0 1 10 4)
+    data1=(1 20 3 4)
+    data2=(2 3 40 5)
     util_write_file_with_header "${file_path}"
     unset headers; unset data0; unset data1; unset data2
     local_passed_tests=0

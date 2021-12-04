@@ -589,8 +589,8 @@ util_write_file_content_with_header(){
         ((${first_line}==1)) && first_line=0 || contents="${contents}\n"
         contents="${contents}# ${i}: ${header}"
     done
-    cols=${#data0[@]}
-    rows=${#headers[@]}
+    cols=${#headers[@]}
+    rows=${#data0[@]}
     local i=0; local col
     local name; local data
     while ((i<rows)); do
@@ -598,7 +598,7 @@ util_write_file_content_with_header(){
         while ((col<cols)); do
             name="data${col}"
             data=$(eval "echo \${${name}[$i]}")
-            ((col==0)) && contents="${contents}\n" || contents="${contents}\t"
+            ((col==0)) && contents="${contents}\n" || contents="${contents} "
             contents="${contents}${data}"
             ((col++))
         done
