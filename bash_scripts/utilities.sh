@@ -567,6 +567,66 @@ util_substitute_prm_file_contents(){
     return 0
 }
 
+util_write_file_content_with_header(){
+    # todo
+    # write files contents with data and header
+    # Inputs:
+    #   headers : an array of headers
+    #   data0: first data
+    #   data1: second data
+    #   ...
+    # Returns:
+    #   contents: contents of outputs
+    # file contains:
+    #   # header0
+    #   # header1
+    #   data0 data1
+    #   ...
+    contents=""
+    first_line=1
+    local i=0
+    for header in ${headers[@]}; do
+        ((i++))
+        ((${first_line}==1)) && first_line=0 || contents="${contents}\n"
+        contents="${contents}# ${i}: ${header}"
+    done
+    cols=${#data0[@]}
+    rows=${#headers[@]}
+    local i=0; local col
+    local name; local data
+    while ((i<rows)); do
+        col=0
+        while ((col<cols)); do
+            name="data${col}"
+            data=$(eval "echo \${${name}[$i]}")
+            ((col==0)) && contents="${contents}\n" || contents="${contents}\t"
+            contents="${contents}${data}"
+            ((col++))
+        done
+        ((i++))
+    done
+    return 0
+}
+
+util_write_file_with_header(){
+    # todo
+    # write files with data and header
+    # Inputs:
+    #   $1 (file_path): path of outputs
+    #   headers (array) : an array of headers
+    # file contains:
+    #   # header0
+    #   # header1
+    #   data0 data1
+    #   ...
+    file_path="$1"; shift
+    [[ -n ${headers} ]] || { cecho "${BAD}" "headers(\${headers} doesn't exit."; exit 1; } 
+    unset contents
+    util_write_file_content_with_header ${headers}
+    printf "${contents}" > "${file_path}"
+    unset contents
+}
+
 
 ################################################################################
 # functions for converting units
@@ -879,7 +939,7 @@ test_clean_log(){
 	eval "cp ${log_source_file} ${log_file}"
 	# call function
 	clean_log "tests/integration/fixtures" "${log_file}"
-	contents=$(cat "${log_file}")  # debug
+	contents=$(cat "${log_file}")
 	# future compare file content
 	if ! [[ "${contents}" = "job_dir job_id ST last_time_step last_time" ]]; then
 		cecho ${BAD} "test_clean_log failed, file contents are not correct"

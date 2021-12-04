@@ -321,6 +321,34 @@ test_util_substitute_prm_file_content(){
     return 0
 }
 
+test_util_write_file_with_header(){
+    # todo
+    # test util_write_file_with_header
+    # this test is designed to write a file with headers
+    # and compare the result to the standard one.
+    local test_source_dir="${test_dir}/test_util_write_file_with_header"
+    file_path="${test_output_dir}/file_with_header"
+    file_path_std="${test_source_dir}/file_with_header_std"
+    [[ -e ${file_path_std} ]] || cecho "${BAD}" "${file_path_std} doesn't exist"
+    headers=("header0" "header1" "header2")
+    data0=(0 1 2)
+    data1=(1 2 3)
+    data2=(2 3 4)
+    util_write_file_with_header "${file_path}"
+    unset headers; unset data0; unset data1; unset data2
+    local_passed_tests=0
+    local_failed_tests=0
+    compare_files "${FUNCNAME[0]}" "${file_path_std}" "${file_path}"
+    if [[ $? = 0 ]]; then
+        ((local_passed_tests++))
+    else
+        ((local_failed_tests++))
+    fi
+    # message
+    final_message ${FUNCNAME[0]} ${local_passed_tests} ${local_failed_tests}
+    return 0
+}
+
 
 ################################################################################
 # main function
@@ -362,6 +390,12 @@ main(){
     test_util_substitute_prm_file_content
     ((passed_tests+=local_passed_tests))
     ((failed_tests+=local_failed_tests))
+    
+    # test util_write_file_with_header()
+    test_util_write_file_with_header
+    ((passed_tests+=local_passed_tests))
+    ((failed_tests+=local_failed_tests))
+
 
     # Test creating case and group with aspect_lib and submit to server
     if [[ -n $server_info ]]; then
