@@ -568,7 +568,6 @@ util_substitute_prm_file_contents(){
 }
 
 util_write_file_content_with_header(){
-    # todo
     # write files contents with data and header
     # Inputs:
     #   headers : an array of headers
@@ -609,7 +608,6 @@ util_write_file_content_with_header(){
 }
 
 util_write_file_with_header(){
-    # todo
     # write files with data and header
     # Inputs:
     #   $1 (file_path): path of outputs
@@ -776,11 +774,6 @@ python_to_bash_array()
     local altered_string=${python_array_like//[\[\]\ ]/}
     IFS="," read -r -a bash_array <<< "${altered_string}"
 }
-
-
-
-
-
 
 
 ################################################################################

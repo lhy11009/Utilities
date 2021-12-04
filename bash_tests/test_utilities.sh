@@ -322,7 +322,6 @@ test_util_substitute_prm_file_content(){
 }
 
 test_util_write_file_with_header(){
-    # todo
     # test util_write_file_with_header
     # this test is designed to write a file with headers
     # and compare the result to the standard one.
