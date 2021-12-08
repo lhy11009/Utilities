@@ -589,6 +589,7 @@ util_write_file_content_with_header(){
     #   # header1
     #   data0 data1
     #   ...
+    local temp
     contents=""
     first_line=1
     local i=0
@@ -606,8 +607,8 @@ util_write_file_content_with_header(){
         while ((col<cols)); do
             name="data${col}"
             data=$(eval "echo \${${name}[$i]}")
-            ((col==0)) && contents="${contents}\n" || contents="${contents}\t"
-            contents="${contents}${data}"
+            ((col==0)) && { contents="${contents}\n"; temp=${data}; } || { contents="${contents} "; temp=$(printf '%15s' ${data}); }
+            contents="${contents}${temp}"
             ((col++))
         done
         ((i++))
