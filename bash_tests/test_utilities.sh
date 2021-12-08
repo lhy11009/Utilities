@@ -19,6 +19,44 @@ test_dir="${test_utilities_dir}/test_utilities"
 
 
 ################################################################################
+# unit functions
+################################################################################
+test_util_neat_word()
+{
+    local_passed_tests=0
+    local_failed_tests=0
+    local results
+    # test 0: with ' ' at the front and in the end
+    results=$(util_neat_word " foo  ")
+    compare_outputs "${FUNCNAME[0]}" "foo" "${results}"
+    if [[ $? = 0 ]]; then
+        ((local_passed_tests++))
+    else
+        ((local_failed_tests++))
+    fi
+    # test 1: do nothing
+    results=$(util_neat_word "foo")
+    compare_outputs "${FUNCNAME[0]}" "foo" "${results}"
+    if [[ $? = 0 ]]; then
+        ((local_passed_tests++))
+    else
+        ((local_failed_tests++))
+    fi
+    # test 2: with ' ' at the frong and '\t' in the end
+    results=$(util_neat_word " foo  ")
+    compare_outputs "${FUNCNAME[0]}" "foo" "${results}"
+    if [[ $? = 0 ]]; then
+        ((local_passed_tests++))
+    else
+        ((local_failed_tests++))
+    fi
+    # message
+    final_message ${FUNCNAME[0]} ${local_passed_tests} ${local_failed_tests}
+    return 0
+}
+
+
+################################################################################
 # test bash_to_python_array()
 # Inputs:
 #   local_passed_tests: number of passed tests
@@ -392,6 +430,11 @@ main(){
     
     # test util_write_file_with_header()
     test_util_write_file_with_header
+    ((passed_tests+=local_passed_tests))
+    ((failed_tests+=local_failed_tests))
+
+    # test util_neat_word
+    test_util_neat_word
     ((passed_tests+=local_passed_tests))
     ((failed_tests+=local_failed_tests))
 
