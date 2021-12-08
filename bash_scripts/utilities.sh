@@ -606,7 +606,7 @@ util_write_file_content_with_header(){
         while ((col<cols)); do
             name="data${col}"
             data=$(eval "echo \${${name}[$i]}")
-            ((col==0)) && contents="${contents}\n" || contents="${contents} "
+            ((col==0)) && contents="${contents}\n" || contents="${contents}\t"
             contents="${contents}${data}"
             ((col++))
         done
