@@ -737,7 +737,7 @@ class JSON_OPT():
             _str(str): string output
         """
         _start = kwargs.get('start', 0)
-        _str = '\n' + '(Note the first number means the index, \
+        _str = '\n' + indent*' ' + '(Note the first number means the index, \
 while the second (in brackets) is the index relative to the parental class)'
         for i in range(len(self.keys)):
             if i > _start:
@@ -748,6 +748,10 @@ while the second (in brackets) is the index relative to the parental class)'
             _str += (indent+8)*' ' + "Nickname: %s" % self.nicks[i] + '\n'
             _str += (indent+8)*' ' + "Description: %s" % self.descriptions[i] + '\n'
             _str += (indent+8)*' ' + "Default value: %s" % str(self.defaults[i]) + '\n'
+            if type(self.types[i]) is tuple:
+                # this is a feature
+                sub_opt = self.types[i][1]()
+                _str += sub_opt.document(indent+4)
         return _str
     
     def document_str(self):
