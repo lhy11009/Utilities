@@ -898,7 +898,7 @@ class IMAGE_OPT(JSON_OPT):
         """
         check values
         """
-        my_assert(os.path.isfile(self.values[0]), FileExistsError,\
+        my_assert(os.path.isfile(var_subs(self.values[0])), FileExistsError,\
             "%s: file %s doesn't exist" % (func_name(), self.values[0]))
         assert(self.values[1] in ["new", "paste", "crop"])
         if self.values[1] == "paste":
@@ -916,13 +916,13 @@ class IMAGE_OPT(JSON_OPT):
         '''
         interface to the PillowRun function
         '''
-        im_path = self.values[0]
+        im_path = var_subs(self.values[0])
         operation = self.values[1]
         resize = self.values[3]
         position = self.values[4]
         mask = self.values[2]
         method = self.values[6]
-        save = self.values[5]
+        save = var_subs(self.values[5])
         is_temp = self.values[7]
         return im_path, operation, resize, position, mask, method, save, is_temp
 
