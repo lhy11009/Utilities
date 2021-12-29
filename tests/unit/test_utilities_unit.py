@@ -208,3 +208,18 @@ def test_string2list():
     input = '[5, 6, 7, 8, 9, 10, 11, 12, 13]'
     output = Utilities.string2list(input)
     assert(output==[5, 6, 7, 8, 9, 10, 11, 12, 13])
+
+
+def test_write_dict_recursive():
+    '''
+    test write_dict_recursive
+    assert:
+
+    '''
+    test_dict = {'foo': {'subfoo': 1}, 'foo1': 0}
+    # test 1
+    result_dict = Utilities.write_dict_recursive(test_dict, ['foo', 'subfoo'], 2)
+    assert(result_dict ==  {'foo': {'subfoo': 2}, 'foo1': 0})
+    # test 2
+    result_dict = Utilities.write_dict_recursive(test_dict, ['foo2'], 3)
+    assert(result_dict == {'foo': {'subfoo': 2}, 'foo1': 0, 'foo2': 3})

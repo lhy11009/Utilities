@@ -575,9 +575,35 @@ util_substitute_prm_file_contents(){
     return 0
 }
 
-util_write_file_content_with_header(){
+util_get_prm_file_value(){
+    # todo
+    # Inputs:
+    #   $1: file
+    #   $2: key
+    # Outputs:
+    #   use the variable "return_values" to return
+    local filename="$1"
+    local key="$2"
+    local value="$3"
+    local contents=""  # initiate as vacant
+    local first_line="true"
+    while IFS= read -r line; do
+        IFS='='; local inputs=(${line})
+        newline="${line}"
+        if ((${#inputs[@]}==2)); then
+            [[ ${inputs[0]} =~ "${key}" ]] && newline="${inputs[0]}= ${value}"
+        fi
+        [[ ${first_line} == "true" ]] && first_line="false" || contents="${contents}\n"
+        contents="${contents}${newline}"
+    done < "${filename}"
+    return_values="${contents}"
+    return 0
+}
+
+util_export_file_content_with_header(){
     # write files contents with data and header
     # Inputs:
+    #   $1: append
     #   headers : an array of headers
     #   data0: first data
     #   data1: second data
@@ -589,15 +615,20 @@ util_write_file_content_with_header(){
     #   # header1
     #   data0 data1
     #   ...
+    local append
+    [[ -n "$1" ]] && append="$1" || append="0"
     local temp
     contents=""
     first_line=1
     local i=0
-    for header in ${headers[@]}; do
-        ((i++))
-        ((${first_line}==1)) && first_line=0 || contents="${contents}\n"
-        contents="${contents}# ${i}: ${header}"
-    done
+    if [[ "${append}" = "0" ]]; then
+        # if we start a new file
+        for header in ${headers[@]}; do
+            ((i++))
+            ((${first_line}==1)) && first_line=0 || contents="${contents}\n"
+            contents="${contents}# ${i}: ${header}"
+        done
+    fi
     cols=${#headers[@]}
     rows=${#data0[@]}
     local i=0; local col
@@ -607,7 +638,7 @@ util_write_file_content_with_header(){
         while ((col<cols)); do
             name="data${col}"
             data=$(eval "echo \${${name}[$i]}")
-            ((col==0)) && { contents="${contents}\n"; temp=${data}; } || { contents="${contents} "; temp=$(printf '%15s' ${data}); }
+            ((col==0)) && { contents="${contents}\n"; temp=$(printf '%-50s' ${data}); } || { contents="${contents} "; temp=$(printf '%15s' ${data}); }
             contents="${contents}${temp}"
             ((col++))
         done
@@ -620,17 +651,25 @@ util_write_file_with_header(){
     # write files with data and header
     # Inputs:
     #   $1 (file_path): path of outputs
+    #   $2 (append): append or ovewrite
     #   headers (array) : an array of headers
     # file contains:
     #   # header0
     #   # header1
     #   data0 data1
     #   ...
-    file_path="$1"; shift
+    file_path="$1";
+    local append
+    [[ -n $2 ]] && append="$2" || append="0" 
     [[ -n ${headers} ]] || { cecho "${BAD}" "headers(\${headers} doesn't exit."; exit 1; } 
     unset contents
-    util_write_file_content_with_header ${headers}
-    printf "${contents}" > "${file_path}"
+    if [[ "${append}" = "1" ]]; then
+        util_export_file_content_with_header "${append}"
+        printf "${contents}" >> "${file_path}"
+    else
+        util_export_file_content_with_header "${append}"
+        printf "${contents}" > "${file_path}"
+    fi
     unset contents
 }
 

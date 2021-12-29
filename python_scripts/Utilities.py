@@ -647,11 +647,11 @@ class JSON_OPT():
                 # this is a variable
                 try:
                     value = read_dict_recursive(options, self.keys[i])
+                    self.values[i] = value
+                    my_assert(type(value) == self.types[i], TypeError,\
+                    "%s: type of the default (%s) is not %s" % (func_name(), str(type(value)), str(self.types[i]))) # assert the type of value
                 except KeyError:
-                    value = self.defaults[i]
-                my_assert(type(value) == self.types[i], TypeError,\
-                "%s: type of the default (%s) is not %s" % (func_name(), str(type(value)), str(self.types[i]))) # assert the type of value
-                self.values.append(value)
+                    pass
         self.check()
 
     def check(self):
@@ -679,6 +679,7 @@ class JSON_OPT():
         my_assert(_type == type(default_value), TypeError,\
         "%s: type of the default (%s) is not %s" % (func_name(), str(type(default_value)), str(_type))) # assert the type of default
         self.defaults.append(default_value)
+        self.values.append(default_value)
         self.nicks.append(nick)
         pass
 
@@ -849,6 +850,24 @@ def read_dict_recursive(_dict, list_of_keys):
     else:
         value = _dict[list_of_keys[0]]
     return value
+
+
+def write_dict_recursive(_dict, list_of_keys, value):
+    '''
+    Write value in a dict by a list of keys
+    i.e. ['visit', 'slab'], and 'visit' is a subdictionary within
+    the given _dict variable.
+    Inputs:
+        _dict (dict): input dictionary
+        list_of_keys (str): list of keys to look for
+    '''
+    if len(list_of_keys) > 1:
+        sub_dict = _dict[list_of_keys[0]]
+        sublist_of_keys = [list_of_keys[i] for i in range(1, len(list_of_keys))]
+        sub_dict = write_dict_recursive(sub_dict, sublist_of_keys, value)
+    else:
+        _dict[list_of_keys[0]] = value
+    return _dict
 
 
 r"""
