@@ -898,8 +898,8 @@ class IMAGE_OPT(JSON_OPT):
         """
         check values
         """
-        my_assert(os.path.isfile(var_subs(self.values[0])), FileExistsError,\
-            "%s: file %s doesn't exist" % (func_name(), self.values[0]))
+        # my_assert(os.path.isfile(var_subs(self.values[0])), FileExistsError,\
+        #    "%s: file %s doesn't exist" % (func_name(), self.values[0]))
         assert(self.values[1] in ["new", "paste", "crop"])
         if self.values[1] == "paste":
             assert(len(self.values[4]) == 2)  # assert positon has the correct length
@@ -999,21 +999,29 @@ def ImageMerge0(im_paths, method, masks, resizes, positions):
     assert(len(masks) == length)
     assert(len(resizes) == length)
     image0 = Image.open(im_paths[0])
+    # todo
+    # get new size
     if method == 'on_first_figure':
-        new_image = Image.new('RGB',(image0.size[0], image0.size[1]),(250,250,250))
-        new_image.paste(image0, [0, 0])  # paste first figure
+        new_size = (image0.size[0], image0.size[1])
+    elif method == 'use_new_one':
+        new_size = [image0.size[0], image0.size[1]]
         for i in range(1, length):
             _image =  Image.open(im_paths[i])
-            size = [ int(v * resizes[i]) for v in _image.size ]  # resize
-            _image = _image.resize(size)
-            if masks[i]:
-                new_image.paste(_image, positions[i], mask=_image)
-            else:
-                new_image.paste(_image, positions[i])
-    elif method == 'use_new_one':
-        pass
+            size = [ int(v * resizes[i]) for v in _image.size ]
+        new_size[0] = max(positions[i][0]+size[0], new_size[0])        
+        new_size[1] = max(positions[i][1]+size[1], new_size[1])        
     else:
         raise ValueError('method must be either \"on first figure\" or \"use_new_one\"')
+    new_image = Image.new('RGB',new_size,(250,250,250))
+    new_image.paste(image0, [0, 0])  # paste first figure
+    for i in range(1, length):
+        _image =  Image.open(im_paths[i])
+        size = [ int(v * resizes[i]) for v in _image.size ]  # resize
+        _image = _image.resize(size)
+        if masks[i]:
+            new_image.paste(_image, positions[i], mask=_image)
+        else:
+            new_image.paste(_image, positions[i])
     return new_image
 
 
@@ -1039,6 +1047,7 @@ def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, i
             last = im_path
             new_image = Image.open(im_path)
         elif operations[i] == 'paste':
+            # todo
             new_image = ImageMerge0([last, im_path], methods[i], (0, masks[i]), (1.0, resizes[i]), ((0.0, 0.0), positions[i]))
         elif operations[i] == 'crop':
             new_image = Image.open(im_path)
@@ -1048,7 +1057,10 @@ def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, i
         if saves[i] != '':
             if is_temps[i] == 0:
                 print("%s: save figure %s" % (func_name(), saves[i]))
+            if not os.path.isdir(os.path.dirname(saves[i])):
+                os.mkdir(os.path.dirname(saves[i]))
             new_image.save(saves[i]) # save image
+            last = saves[i]
         i += 1
     i = 0
     for save_path in saves:
