@@ -558,9 +558,10 @@ util_substitute_prm_file_contents(){
     # Outputs:
     #   use the variable "return_values" to return
     local filename="$1"
+    local dir=$(dirname "${filename}")
+    local temp_file="${dir}/subs_temp"
     local key="$2"
     local value="$3"
-    local contents=""  # initiate as vacant
     local first_line="true"
     while IFS= read -r line; do
         IFS='='; local inputs=(${line})
@@ -568,10 +569,14 @@ util_substitute_prm_file_contents(){
         if ((${#inputs[@]}==2)); then
             [[ ${inputs[0]} =~ "${key}" ]] && newline="${inputs[0]}= ${value}"
         fi
-        [[ ${first_line} == "true" ]] && first_line="false" || contents="${contents}\n"
-        contents="${contents}${newline}"
+	if [[ ${first_line} == "true" ]]; then
+		first_line="false" 
+		echo "${newline}" > "${temp_file}"
+	else
+		echo "${newline}" >> "${temp_file}"
+	fi
     done < "${filename}"
-    return_values="${contents}"
+    eval "mv ${temp_file} ${filename}"
     return 0
 }
 
