@@ -6,7 +6,7 @@ import inspect
 import numpy as np
 from importlib import resources
 from pathlib import Path
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageFont, ImageDraw
 
 
 r'''
@@ -598,7 +598,6 @@ class JSON_OPT():
     def __init__(self):
         """
         Initiation
-        todo
         """
         self.keys = []
         self.descriptions = []
@@ -623,7 +622,6 @@ class JSON_OPT():
 
     def import_options(self, options):
         """
-        todo
         Import options from a dictionary and then check the values
         Inputs:
             options (dict): dictionary of options
@@ -685,7 +683,6 @@ class JSON_OPT():
 
     def add_features(self, description, keys, SUB_OPT, **kwargs):
         """
-        todo
         add a feature, which shows as a list in the json file.
         Inputs:
             description (str)
@@ -782,7 +779,6 @@ while the second (in brackets) is the index relative to the parental class)'
 def create_option_object(OPT, options):
     """
     create an object with the intended options    
-    todo
     Inputs:
         OPT (class inherits JSON_OPT)
         options (dict)
@@ -876,7 +872,6 @@ Classes and functions related to post-process images
 
 class IMAGE_OPT(JSON_OPT):
     '''
-    todo
     class to hold options for individual images
     '''
     def __init__(self):
@@ -893,6 +888,8 @@ class IMAGE_OPT(JSON_OPT):
         self.add_key("Method to use", str, ["method"], "on_first_figure", nick='method')
         self.add_key("Whether this is a intermediate result to be removed",\
              int, ["temp"], 0, nick='is_temp')
+        self.add_key("Text to use, only work with the \"text\" operation", str, ["text"], "", nick="text")
+        self.add_key("Size of the Text to use, only work with the \"text\" operation", int, ["font size"], 40, nick="font size")
     
     def check(self):
         """
@@ -900,11 +897,15 @@ class IMAGE_OPT(JSON_OPT):
         """
         # my_assert(os.path.isfile(var_subs(self.values[0])), FileExistsError,\
         #    "%s: file %s doesn't exist" % (func_name(), self.values[0]))
-        assert(self.values[1] in ["new", "paste", "crop"])
+        assert(self.values[1] in ["new", "paste", "crop", "text"])
         if self.values[1] == "paste":
             assert(len(self.values[4]) == 2)  # assert positon has the correct length
         elif self.values[1] == "crop":
             assert(len(self.values[4]) == 4)
+        elif self.values[1] == "text":
+            assert(type(self.values[8]) == str and self.values[8] != "")  # check text entry
+            assert(type(self.values[9]) == int and self.values[9] > 0)
+        
         assert(self.values[2] in [0, 1])  # mask is a bool value
         for i in self.values[4]:
             assert(type(i) == int)
@@ -924,12 +925,13 @@ class IMAGE_OPT(JSON_OPT):
         method = self.values[6]
         save = var_subs(self.values[5])
         is_temp = self.values[7]
-        return im_path, operation, resize, position, mask, method, save, is_temp
+        text = self.values[8]
+        font_size = self.values[9]
+        return im_path, operation, resize, position, mask, method, save, is_temp, text, font_size
 
 
 class PILLOW_OPT(JSON_OPT):
     '''
-    todo
     class to hold options for using pillow to operation on images
     '''
     def __init__(self):
@@ -943,7 +945,6 @@ class PILLOW_OPT(JSON_OPT):
     def to_pillow_run(self):
         '''
         interface to the PillowRun function
-        todo
         '''
         im_paths = []
         operations = []
@@ -953,8 +954,10 @@ class PILLOW_OPT(JSON_OPT):
         methods = []
         saves = []
         is_temps = []
+        texts = []
+        font_sizes = []
         for feature in self.values[0]:
-            im_path, operation, resize, position, mask, method, save, is_temp =\
+            im_path, operation, resize, position, mask, method, save, is_temp, text, font_size =\
                 feature.to_pillow_run()
             im_paths.append(im_path)
             operations.append(operation)
@@ -964,7 +967,9 @@ class PILLOW_OPT(JSON_OPT):
             methods.append(method)
             saves.append(save)
             is_temps.append(is_temp)
-        return im_paths, operations, resizes, positions, masks, methods, saves, is_temps
+            texts.append(text)
+            font_sizes.append(font_size)
+        return im_paths, operations, resizes, positions, masks, methods, saves, is_temps, texts, font_sizes
 
 
 def ImageMerge(im_paths, **kwargs):
@@ -999,7 +1004,6 @@ def ImageMerge0(im_paths, method, masks, resizes, positions):
     assert(len(masks) == length)
     assert(len(resizes) == length)
     image0 = Image.open(im_paths[0])
-    # todo
     # get new size
     if method == 'on_first_figure':
         new_size = (image0.size[0], image0.size[1])
@@ -1025,7 +1029,7 @@ def ImageMerge0(im_paths, method, masks, resizes, positions):
     return new_image
 
 
-def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, is_temps):
+def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, is_temps, texts, font_sizes):
     '''
     Image operation with pillow
     Inputs:
@@ -1039,7 +1043,8 @@ def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, i
             use_new_one: take a new blank figure and lay everything on that
         saves (list of str): paths to save figure
         is_temps(list of int): whether to remove intermediate results
-    todo
+        texts (list of str): texts to append
+        font_sizes (list of int): font sizes
     '''
     i = 0
     for im_path in im_paths:
@@ -1047,11 +1052,15 @@ def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, i
             last = im_path
             new_image = Image.open(im_path)
         elif operations[i] == 'paste':
-            # todo
             new_image = ImageMerge0([last, im_path], methods[i], (0, masks[i]), (1.0, resizes[i]), ((0.0, 0.0), positions[i]))
         elif operations[i] == 'crop':
             new_image = Image.open(im_path)
             new_image = new_image.crop(positions[i])
+        elif operations[i] == 'text':
+            fnt0 = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", font_sizes[i])  # get a font
+            new_image = Image.open(im_path)
+            d = ImageDraw.Draw(new_image)
+            d.text(positions[i], texts[i], font=fnt0, fill=(0, 0, 0))  # anchor option doesn't workf
         else:
             raise ValueError('operation must be in [new, paste, crop]')
         if saves[i] != '':
