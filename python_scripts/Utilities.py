@@ -2,7 +2,7 @@ import json
 import re
 import os
 import inspect
-# import shilofue.json_files
+import utilities.json_files
 import numpy as np
 from importlib import resources
 from pathlib import Path
@@ -411,7 +411,7 @@ class UNITCONVERT():
         '''
         _filename = kwargs.get('filename', None)
         if _filename is None:
-            with resources.open_text(shilofue.json_files, 'UnitConvert.json') as fin:
+            with resources.open_text(utilities.json_files, 'UnitConvert.json') as fin:
                 _data = json.load(fin)
         else:
             with open(_filename, 'r') as fin:
