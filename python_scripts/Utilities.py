@@ -527,6 +527,27 @@ def cart2sph2(x,y):
     return r, ph
 
 
+def dXY2RL(x0, y0, x1, y1, geometry):
+    '''
+    Convert from dx dy to dr and dl, where dl is the increment of the horizontal dimention
+    dl = r*d(theta)
+    '''
+    if geometry=='chunk':
+        r0 = (x0*x0 + y0*y0)**0.5
+        r1 = (x1*x1 + y1*y1)**0.5
+        theta0 = np.arctan2(y0, x0)
+        theta1 = np.arctan2(y1, x1)
+        dr = r1 - r0
+        dl = r0 * (theta1 - theta0)
+    elif geometry=='box':
+        dr = y1 - y0
+        dl = x1 - x0
+    else:
+        raise ValueError("geometry could only by chunk or box")
+    return dr, dl
+
+
+
 r'''
 Functions for additional opionts in numpy
 '''
