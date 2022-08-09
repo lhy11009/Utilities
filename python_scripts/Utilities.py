@@ -379,6 +379,28 @@ class CODESUB():
         return _path
 
 
+'''
+Functions for other operation of file
+'''
+def SortByCreationTime(paths):
+    c_timestamps = []
+    for i in range(len(paths)):
+        _path = paths[i]
+        c_timestamp = os.path.getctime(_path)
+        c_timestamps.append(c_timestamp)
+    c_timestamps = np.array(c_timestamps)
+    for i in range(len(paths)):
+        _path = paths[i]
+    # paths to output
+    o_paths = paths
+    for i in range(len(paths)):
+        for j in range(0, len(paths)-i-1):
+            if c_timestamps[j] < c_timestamps[j+1]:
+                c_timestamps[j], c_timestamps[j+1] = c_timestamps[j+1], c_timestamps[j]
+                o_paths[j], o_paths[j+1] = o_paths[j+1], o_paths[j]
+    return o_paths
+
+
 r'''
 Functions for converting units
 '''
@@ -879,7 +901,10 @@ def write_dict_recursive(_dict, list_of_keys, value):
         list_of_keys (str): list of keys to look for
     '''
     if len(list_of_keys) > 1:
-        sub_dict = _dict[list_of_keys[0]]
+        key = list_of_keys[0]
+        if not (key in _dict):
+            _dict[key] = {}  # initiate a new dict if the key is not there yet
+        sub_dict = _dict[key]
         sublist_of_keys = [list_of_keys[i] for i in range(1, len(list_of_keys))]
         sub_dict = write_dict_recursive(sub_dict, sublist_of_keys, value)
     else:
