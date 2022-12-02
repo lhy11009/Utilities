@@ -287,6 +287,19 @@ def ReadHeader2(_texts):
             _header['total_col'] += 1
     return _header
 
+def ReadDashOptions(texts):
+    temp = re.sub('^ *', '', texts)
+    temp = re.sub('\n$', '', temp)
+    texts_1 = re.sub(' *(#.*)?$', '', temp)
+    if re.match('^--', texts_1):
+        components = texts_1.split('=')
+    elif re.match('^-', texts_1):
+        components = texts_1.split(' ')
+    else:
+        raise ValueError("inputs doesn't have the required format")
+    key = re.sub("(\t| )*", "", components[0])
+    value = re.sub("(\t| )*", "", components[1])
+    return key, value
 
 r'''
 Functions for writing files
@@ -568,6 +581,33 @@ def dXY2RL(x0, y0, x1, y1, geometry):
         raise ValueError("geometry could only by chunk or box")
     return dr, dl
 
+
+def point2dist(p0, p1, geometry):
+    '''
+    compute the distance between two points
+    '''
+    assert(len(p0) == len(p1))
+    if geometry=='chunk':
+        if len(p0) == 2:
+            theta0 = p0[0]
+            r0 = p0[1]
+            theta1 = p1[0]
+            r1 = p1[1]
+            dist = (r0**2.0 + r1**2.0 - 2*r0*r1*np.cos(theta0-theta1))**0.5
+        else:
+            raise NotImplementedError()
+    elif geometry == 'box':
+        if len(p0) == 2:
+            x0 = p0[0]
+            y0 = p0[1]
+            x1 = p1[0]
+            y1 = p1[1]
+            dist = ((x0-x1)**2.0 + (y0-y1)**2.0)**0.5
+        else:
+            raise NotImplementedError()
+    else:
+        raise NotImplementedError()
+    return dist
 
 
 r'''
