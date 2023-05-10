@@ -730,7 +730,8 @@ class JSON_OPT():
                     value = read_dict_recursive(options, self.keys[i])
                     self.values[i] = value
                     my_assert(type(value) == self.types[i], TypeError,\
-                    "%s: type of the default (%s) is not %s" % (func_name(), str(type(value)), str(self.types[i]))) # assert the type of value
+                    "%s: type of the input value (%s, %s) is not %s \n" % (func_name(), str(type(value)), str(value), str(self.types[i]))\
+                    + "the key is: \n" + str(self.keys[i])) # assert the type of value
                 except KeyError:
                     pass
         self.check()
