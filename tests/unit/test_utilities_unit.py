@@ -223,3 +223,18 @@ def test_write_dict_recursive():
     # test 2
     result_dict = Utilities.write_dict_recursive(test_dict, ['foo2'], 3)
     assert(result_dict == {'foo': {'subfoo': 2}, 'foo1': 0, 'foo2': 3})
+
+
+def test_insert_dict_after():
+    '''
+    test the implementation of dict_insert_after
+    assert:
+        1. the new option is successfully inserted into the dictionary
+        2. this also works for a complex dict
+    '''
+    test_dict = {'a': 1, 'b': 2, 'd': 4}
+    Utilities.insert_dict_after(test_dict, 'c', 3, 'b')
+    assert(str(test_dict)=="{'a': 1, 'b': 2, 'c': 3, 'd': 4}")  # assert 1
+    test_dict = {'a': {'a1': 1.1, 'a2': 1.2}, 'b': 2, 'd': {'d1': 4, 'd2': 5}}
+    Utilities.insert_dict_after(test_dict, 'c', [3.1, 3.2], 'b')
+    assert(str(test_dict) == "{'a': {'a1': 1.1, 'a2': 1.2}, 'b': 2, 'c': [3.1, 3.2], 'd': {'d1': 4, 'd2': 5}}") # assert 2

@@ -2,7 +2,7 @@ import json
 import re
 import os
 import inspect
-import utilities.json_files
+# import utilities.json_files
 import numpy as np
 from importlib import resources
 from pathlib import Path
@@ -950,6 +950,36 @@ def write_dict_recursive(_dict, list_of_keys, value):
         sub_dict = write_dict_recursive(sub_dict, sublist_of_keys, value)
     else:
         _dict[list_of_keys[0]] = value
+    return _dict
+
+
+def insert_dict_after(_dict, new_key, new_value, pre_key):
+    '''
+    insert a new (key, value) pair after a previous key
+    '''
+    my_assert(pre_key in _dict, ValueError,\
+    "The pre_key given \"%s\" is not in the dict" % pre_key) # for this to work, a valid pre_key
+    my_assert(new_key not in _dict, ValueError,\
+    "The new_key \"%s\" is already in this dictionary" % new_key)
+    # record all the later keys and values
+    found = False
+    later_keys = []  # to save later pairs once they are poped
+    later_values = []
+    for key, value in _dict.items():
+        if found:
+            later_keys.append(key)
+            later_values.append(value)
+        if key == pre_key:
+            found = True
+    assert(found)
+    # pop values
+    for key in later_keys:
+        _dict.pop(key)
+    # insert new one
+    _dict[new_key] = new_value
+    # insert later ones
+    for i in range(len(later_keys)):
+        _dict[later_keys[i]] = later_values[i]
     return _dict
 
 
