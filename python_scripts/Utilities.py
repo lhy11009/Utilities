@@ -1193,3 +1193,139 @@ def PillowRun(im_paths, operations, resizes, positions, masks, methods, saves, i
         if is_temps[i] == 1:
             os.remove(save_path)  # remove intermediate results
         i += 1
+
+
+r"""
+Class and functions for making documentation
+"""
+class TEX_TABLE():
+    '''
+    table in tex (markdown and latex)
+    Attributes:
+        name: name of the table
+        header: the header of the table
+        data: data in the table
+        colors: options for colors
+        n_col: col in the table
+        n_raw: raw in the table
+    '''
+    def __init__(self, _name, **kwargs):
+        '''
+        initiation
+        '''
+        self.name = _name
+        self.header = kwargs.get("header", [])
+        self.data = kwargs.get("data", [])
+        self.colors = kwargs.get("colors", None)
+        self.n_col = len(self.header)
+        self.n_raw = len(self.data)
+        # assert the length of data and header match
+        assert(len(self.data) == len(self.header))
+        if self.colors is not None:
+            assert(len(self.colors) == len(self.header))
+
+
+    def __call__(self):
+        '''
+        generate table
+        '''
+        outputs = ""
+        outputs += md_table_header(self.name, self.header, colors=self.colors)
+        outputs += md_table_contents(self.data, colors=self.colors)
+        outputs += md_table_tail()
+        return outputs
+
+
+def md_table_header(_name, headers, **kwargs):
+    '''
+    generate md table header
+    Inputs:
+        _name: name of the table
+        headers: headers of the table
+        kwargs:
+            colors: colors of the input
+    Returns:
+        outputs: contents of the table header
+    '''
+    colors = kwargs.get("colors", None)
+    if colors is not None:
+        # length of colors and headers must match
+        assert(len(colors) == len(headers))
+    outputs = ""
+    # header options
+    outputs += "<style>\n.%s {\n\toverflow-x: scroll;\n\twidth: 100%%;\n}\n</style>\n\n" % _name
+    outputs += "<div class=\"%s\" markdown=\"block\">\n\n" % _name
+    # header contents
+    outputs += "|"
+    i = 0
+    for header in headers:
+        if colors is not None and colors[i] is not None:
+            # add color option if one is given
+            color_option_0 = "<span style=\"color:%s\">" % colors[i]
+            color_option_1 = "</span>"
+        else:
+            color_option_0 = ""
+            color_option_1 = ""
+        outputs += color_option_0 + " %s\t" % header + color_option_1 + "|"
+        i += 1
+    outputs += "\n"
+    # header format
+    outputs += "|"
+    for i in range(len(headers)):
+        outputs += " :-----------:	|"
+    outputs += "\n"
+    return outputs
+
+
+def md_table_contents(data, **kwargs):
+    '''
+    generate md table
+    Inputs:
+        data: data in the table
+        kwargs:
+            colors: colors of the input
+    '''
+    outputs = ""
+    # read data dimensions
+    n_col = len(data)
+    n_raw = len(data[0])
+    for i in range(1, n_col):
+        assert(len(data[i])==n_raw)
+    colors = kwargs.get("colors", None)
+    if colors is not None:
+        # length of colors and headers must match
+        assert(len(colors) == n_col)
+    # construct outputs
+    for j_raw in range(n_raw):
+        outputs += "|"
+        for i_col in range(n_col):
+            _data = data[i_col][j_raw]
+            if colors is not None and colors[i_col] is not None:
+                # add color option if one is given
+                color_option_0 = "<span style=\"color:%s\">" % colors[i_col]
+                color_option_1 = "</span>"
+            else:
+                color_option_0 = ""
+                color_option_1 = ""
+            if type(_data) == int:
+                _str = "%d" % _data
+            elif type(_data) == float:
+                _str = "%.4e" % _data
+            else:
+                _str = str(_data)
+            outputs += color_option_0+ " %s\t" % _str + color_option_1 +  "|"
+        outputs += "\n"
+    return outputs
+
+
+def md_table_tail():
+    '''
+    generate md table tail
+    Inputs:
+        _name: name of the table
+    Returns:
+        outputs: contents of the table tail
+    '''
+    outputs = ""
+    outputs += "\n</div>\n"
+    return outputs
