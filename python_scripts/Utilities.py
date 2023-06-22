@@ -1224,15 +1224,25 @@ class TEX_TABLE():
         if self.colors is not None:
             assert(len(self.colors) == len(self.header))
 
-
-    def __call__(self):
+    def __call__(self, **kwargs):
         '''
         generate table
+        Inputs:
+            kwargs:
+                format - the output format
         '''
+        _format = kwargs.get("format", "markdown")
         outputs = ""
-        outputs += md_table_header(self.name, self.header, colors=self.colors)
-        outputs += md_table_contents(self.data, colors=self.colors)
-        outputs += md_table_tail()
+        if _format == "markdown":
+            outputs += md_table_header(self.name, self.header, colors=self.colors)
+            outputs += md_table_contents(self.data, colors=self.colors)
+            outputs += md_table_tail()
+        elif _format == "latex":
+            outputs += latex_table_header(self.name, self.header, colors=self.colors)
+            outputs += latex_table_contents(self.data, colors=self.colors)
+            outputs += latex_table_tail(name=self.name)
+        else:
+            return ValueError("Format must be either markdown or latex")
         return outputs
 
 
@@ -1328,4 +1338,96 @@ def md_table_tail():
     '''
     outputs = ""
     outputs += "\n</div>\n"
+    return outputs
+
+
+def latex_table_header(_name, headers, **kwargs):
+    '''
+    generate latex table header
+    Inputs:
+        _name: name of the table
+        headers: headers of the table
+        kwargs:
+            colors: colors of the input
+    Returns:
+        outputs: contents of the table header
+    '''
+    outputs = ""
+    outputs += "\\begin{table}[H]\n"
+    outputs += "\\centering\n"
+    outputs += "\\resizebox{\\columnwidth}{!}{\n"
+    outputs += "\t\\begin{tabular}{*{%d}{c}}\n" % len(headers)
+    outputs += "\t"
+    is_first = True
+    for header in headers:
+        if is_first:
+            is_first = False
+        else:
+            outputs += " & "
+        outputs += header
+    outputs += "\\\\\n\t\\hline"
+    outputs += '\n'
+    return outputs
+
+
+def latex_table_contents(data, **kwargs):
+    '''
+    generate latex table
+    Inputs:
+        data: data in the table
+        kwargs:
+            colors: colors of the input
+    '''
+    outputs = ""
+    # read data dimensions
+    n_col = len(data)
+    n_raw = len(data[0])
+    for i in range(1, n_col):
+        assert(len(data[i])==n_raw)
+    colors = kwargs.get("colors", None)
+    if colors is not None:
+        # length of colors and headers must match
+        assert(len(colors) == n_col)
+    # construct outputs
+    for j_raw in range(n_raw):
+        for i_col in range(n_col):
+            if i_col == 0:
+                outputs += "\t\t"
+            else:
+                outputs += " & "
+            _data = data[i_col][j_raw]
+            # color options: future
+            # if colors is not None and colors[i_col] is not None:
+            # else:
+            if type(_data) == int:
+                _str = "%d" % _data
+            elif type(_data) == float:
+                _str = "%.4e" % _data
+            else:
+                _str = str(_data)
+            _str = re.sub("_", "\\_", _str) # fix _
+            outputs += _str
+        outputs += "\\\\\n"
+    return outputs
+
+
+def latex_table_tail(**kwargs):
+    '''
+    generate latex table tail
+    Inputs:
+        kwargs:
+            name: name of the table
+            caption: caption of the table
+    Returns:
+        outputs: contents of the table tail
+    '''
+    _name = kwargs.get('name', "foo")
+    _caption = kwargs.get('caption', "Caption:")
+    outputs = ""
+    outputs += "\t\\hline\n"
+    outputs += "\t\\end{tabular}\n"
+    outputs += "}\n"
+    outputs += "\\label{tab:%s}\n" % _name
+    outputs += "\\caption{%s}\n" % _caption
+    outputs += "\\end{table}\n"
     return outputs
