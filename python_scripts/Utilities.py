@@ -8,6 +8,8 @@ from importlib import resources
 from pathlib import Path
 from PIL import Image, ImageFilter, ImageFont, ImageDraw
 
+current_dir = os.path.dirname(__file__)
+JSON_FILE_DIR = os.path.join(current_dir, "..", "files")
 
 r'''
 Alias for longer syntax in python
@@ -165,7 +167,7 @@ def string2list(inputs, _type=int):
 r'''
 Functions for read files
 '''
-def JsonOptions(prefix, _dir=None):
+def JsonOptions(prefix, _dir):
     '''
     JsonOptions(prefix)
     Read format options for plotting from json files
@@ -181,29 +183,14 @@ def JsonOptions(prefix, _dir=None):
             'Number_of_Cells' in this dictionary.
     '''
     _options = {}  # options is a dictionary
-    if _dir == None:
-        # default option
-        for _filename in resources.contents(shilofue.json_files):
-            # this resources.contents return a interable from a sub-package,
-            # entries in this interable are filenames
-            if re.match("^" + prefix + '_', _filename):
-                # the following two lines eliminate the words before the first '_'
-                # with that '_' as well as the '.json' in the end.
-                # so that if filename is 'Statistics_Number_of_Cells.json',
-                # _name is 'Number_of_Cells'
-                _name = _filename.split('_', maxsplit=1)[1]
-                _name = _name.rsplit(".", maxsplit=1)[0]
-                with resources.open_text(shilofue.json_files, _filename) as fin:
-                    _options[_name] = json.load(fin)  # values are entries in this file
-    else:
-        pathlist = Path(_dir).rglob('%s_*.json' % prefix)
-        for path in pathlist:
-            _filename = str(path)
-            _base_name = os.path.basename(_filename)
-            _name = _base_name.split('_', maxsplit=1)[1]
-            _name = _name.rsplit(".", maxsplit=1)[0]
-            with open(_filename, 'r') as fin:
-                _options[_name] = json.load(fin)  # values are entries in this file
+    pathlist = Path(_dir).rglob('%s_*.json' % prefix)
+    for path in pathlist:
+        _filename = str(path)
+        _base_name = os.path.basename(_filename)
+        _name = _base_name.split('_', maxsplit=1)[1]
+        _name = _name.rsplit(".", maxsplit=1)[0]
+        with open(_filename, 'r') as fin:
+            _options[_name] = json.load(fin)  # values are entries in this file
     assert(_options is not {})  # assert not vacant
     return _options
 
@@ -446,11 +433,10 @@ class UNITCONVERT():
         '''
         _filename = kwargs.get('filename', None)
         if _filename is None:
-            with resources.open_text(utilities.json_files, 'UnitConvert.json') as fin:
-                _data = json.load(fin)
-        else:
-            with open(_filename, 'r') as fin:
-                _data = json.load(fin)
+            # fix filename if none is given
+            _filename = os.path.join(JSON_FILE_DIR, 'UnitConvert.json')
+        with open(_filename, 'r') as fin:
+            _data = json.load(fin)
         # a dictionary, this is the magnitudes of units, every value is an list
         # of an int and a string
         self.units = _data['units']
