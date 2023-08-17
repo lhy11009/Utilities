@@ -1203,12 +1203,23 @@ class TEX_TABLE():
         self.header = kwargs.get("header", [])
         self.data = kwargs.get("data", [])
         self.colors = kwargs.get("colors", None)
-        self.n_col = len(self.header)
-        self.n_raw = len(self.data)
         # assert the length of data and header match
-        assert(len(self.data) == len(self.header))
+        if len(self.data) == 0:
+            self.data = [[] for i in range(len(self.header))]
+        else:
+            assert(len(self.data) == len(self.header))
         if self.colors is not None:
             assert(len(self.colors) == len(self.header))
+        self.n_col = len(self.header)
+        self.n_raw = len(self.data[0])
+    
+    def append_data(self, _data):
+        '''
+        append data
+        '''
+        assert(len(self.data) == len(_data))
+        for i in range(len(_data)):
+            self.data[i] += _data[i]
 
     def __call__(self, **kwargs):
         '''
