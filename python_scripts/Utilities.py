@@ -1428,3 +1428,22 @@ def latex_table_tail(**kwargs):
     outputs += "\\caption{%s}\n" % _caption
     outputs += "\\end{table}\n"
     return outputs
+
+
+def latex_figure(fig_path, **kwargs):
+    '''
+    returns latex texts of a figure 
+    Inputs:
+        fig_path (str): path to the figure
+        kwargs (dict):
+            caption: caption of the figure
+    '''
+    _caption = kwargs.get("caption", "")
+    outputs = ""
+    outputs += "\\begin{figure}[H]\n"
+    outputs += "\\centering\n"
+    outputs += "    \\includegraphics[width=\\textwidth]{%s}\n" % fig_path
+    outputs += "\\caption{\\it %s}\n" % _caption
+    outputs += "\\label{fig:initial_new}\n"
+    outputs += "\\end{figure}\n"
+    return outputs
