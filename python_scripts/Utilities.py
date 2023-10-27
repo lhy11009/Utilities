@@ -676,17 +676,21 @@ class JSON_OPT():
         self.nicks = []
         self.start = 0
 
-
-    def read_json(self, _path):
+    def read_json(self, json_options):
         """
         Read in json option from file path
         Inputs:
-            _path (str): path of the json file
+            json_options (str or dict): path of the json file or a dictionary
         """
-        assert(os.access(_path, os.R_OK))
-        print("    Read options from json file: %s" % _path)
-        with open(_path, 'r') as fin:
-            options = json.load(fin)
+        if (type(json_options) == str):
+            assert(os.access(json_options, os.R_OK))
+            print("    Read options from json file: %s" % json_options)
+            with open(json_options, 'r') as fin:
+                options = json.load(fin)
+        elif (type(json_options) == dict):
+            options = json_options
+        else:
+            raise TypeError("json_options must be either str or dict.")
         self.import_options(options)
 
     def import_options(self, options):
