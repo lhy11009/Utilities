@@ -238,3 +238,30 @@ def test_insert_dict_after():
     test_dict = {'a': {'a1': 1.1, 'a2': 1.2}, 'b': 2, 'd': {'d1': 4, 'd2': 5}}
     Utilities.insert_dict_after(test_dict, 'c', [3.1, 3.2], 'b')
     assert(str(test_dict) == "{'a': {'a1': 1.1, 'a2': 1.2}, 'b': 2, 'c': [3.1, 3.2], 'd': {'d1': 4, 'd2': 5}}") # assert 2
+
+
+def test_map_mid_point():
+    '''
+    test the function of map_mid_point(lon1, lat1, lon2, lat2, frac)
+    assert:
+        the coordinates of the mid points
+    '''
+    lon1, lat1 = -73.935242, 40.730610  # New York City (approx.)
+    lon2, lat2 = -118.243683, 34.052235  # Los Angeles (approx.)
+    # assert 1: point in the middle
+    frac = 0.5
+    mid_lon, mid_lat = Utilities.map_mid_point(lon1, lat1, lon2, lat2, frac)
+    mid_lon_std, mid_lat_std = -97.12968569482643, 39.52640503514376
+    assert(abs(mid_lon - mid_lon_std)/mid_lon_std < 1e-6 and abs(mid_lat - mid_lat_std)/mid_lat_std < 1e-6)
+    # assert 2: point approaching one end
+    frac = 0.0
+    mid_lon, mid_lat = Utilities.map_mid_point(lon1, lat1, lon2, lat2, frac)
+    mid_lon_std, mid_lat_std = -73.935242, 40.730610
+    assert(abs(mid_lon - mid_lon_std)/mid_lon_std < 1e-6 and abs(mid_lat - mid_lat_std)/mid_lat_std < 1e-6)
+    # assert 3: query points are at two sides of 180.0
+    lon1, lat1 = -173.935242, -40.730610  # New York City (approx.)
+    lon2, lat2 = 177.243683, 34.052235  # Los Angeles (approx.)
+    frac = 0.5
+    mid_lon, mid_lat = Utilities.map_mid_point(lon1, lat1, lon2, lat2, frac)
+    mid_lon_std, mid_lat_std = -178.54285589904237, -3.3490631461072344
+    assert(abs(mid_lon - mid_lon_std)/mid_lon_std < 1e-6 and abs(mid_lat - mid_lat_std)/mid_lat_std < 1e-6)

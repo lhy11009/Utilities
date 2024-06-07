@@ -1,8 +1,9 @@
 import json
 import re
 import os
+import sys
 import inspect
-import utilities.json_files
+import math
 import numpy as np
 from importlib import resources
 from pathlib import Path
@@ -10,6 +11,10 @@ from PIL import Image, ImageFilter, ImageFont, ImageDraw
 
 current_dir = os.path.dirname(__file__)
 JSON_FILE_DIR = os.path.join(current_dir, "..", "files")
+
+# sys.path.append(current_dir)
+
+# import utilities.json_files
 
 r'''
 Alias for longer syntax in python
@@ -1451,3 +1456,42 @@ def latex_figure(fig_path, **kwargs):
     outputs += "\\label{fig:initial_new}\n"
     outputs += "\\end{figure}\n"
     return outputs
+
+def map_mid_point(lon1, lat1, lon2, lat2, frac):
+    '''
+    calculate the middle point between two points on the map
+    Inputs:
+        frac - float in 0.0, 1.0
+    '''
+    assert(0.0 <= frac and frac <= 1.0)
+
+    # Convert latitude and longitude from degrees to radians
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+    
+    # Convert to Cartesian coordinates
+    x1 = math.cos(lat1_rad) * math.cos(lon1_rad)
+    y1 = math.cos(lat1_rad) * math.sin(lon1_rad)
+    z1 = math.sin(lat1_rad)
+    
+    x2 = math.cos(lat2_rad) * math.cos(lon2_rad)
+    y2 = math.cos(lat2_rad) * math.sin(lon2_rad)
+    z2 = math.sin(lat2_rad)
+    
+    # Calculate the midpoint in Cartesian coordinates
+    x_mid = x2 * frac + x1 * (1.0 - frac)
+    y_mid = y2 * frac + y1 * (1.0 - frac)
+    z_mid = z2 * frac + z1 * (1.0 - frac)
+    
+    # Convert back to spherical coordinates
+    lon_mid = math.atan2(y_mid, x_mid)
+    hyp = math.sqrt(x_mid * x_mid + y_mid * y_mid)
+    lat_mid = math.atan2(z_mid, hyp)
+    
+    # Convert radians back to degrees
+    lon_mid_deg = math.degrees(lon_mid)
+    lat_mid_deg = math.degrees(lat_mid)
+    
+    return lon_mid_deg, lat_mid_deg
