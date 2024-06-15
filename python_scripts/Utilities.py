@@ -1495,3 +1495,37 @@ def map_mid_point(lon1, lat1, lon2, lat2, frac):
     lat_mid_deg = math.degrees(lat_mid)
     
     return lon_mid_deg, lat_mid_deg
+
+
+def map_point_by_distance(lon0, lat0, theta, d, **kwargs):
+    '''
+    get the point on the map by distance and angle
+    Inputs:
+        lon0_rad: longitude of the first point
+        lat0_rad: latitude of the first point
+    '''
+    R = kwargs.get('R', 6371.0e3)  # Earth's radius in kilometers (example)
+    angular_distance = d / R
+
+    # convert inputs from degree to radian
+    lon0_rad = math.radians(lon0)
+    lat0_rad = math.radians(lat0)
+    theta_rad = math.radians(theta)
+
+    # calculate the new longitude and latitude in radian
+    lat_rad = math.asin(math.sin(lat0_rad) * math.cos(angular_distance) +
+                        math.cos(lat0_rad) * math.sin(angular_distance) * math.cos(theta_rad))
+    
+    lon_rad = lon0_rad + math.atan2(math.sin(theta_rad) * math.sin(angular_distance) * math.cos(lat0_rad),
+                                math.cos(angular_distance) - math.sin(lat0_rad) * math.sin(lat_rad))
+
+    # adjust the range of longitude 
+    if lon_rad < np.pi:
+        lon_rad += 2 * np.pi
+    elif lon_rad > np.pi:
+        lon_rad -= 2 * np.pi
+
+    lon = math.degrees(lon_rad)
+    lat = math.degrees(lat_rad)
+    
+    return lon, lat

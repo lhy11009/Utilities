@@ -265,3 +265,17 @@ def test_map_mid_point():
     mid_lon, mid_lat = Utilities.map_mid_point(lon1, lat1, lon2, lat2, frac)
     mid_lon_std, mid_lat_std = -178.54285589904237, -3.3490631461072344
     assert(abs(mid_lon - mid_lon_std)/mid_lon_std < 1e-6 and abs(mid_lat - mid_lat_std)/mid_lat_std < 1e-6)
+
+
+def test_map_point_by_distance():
+    '''
+    test the function map_point_by_distance
+    assert:
+        the coordinates of the derived point
+    '''
+    lon0, lat0 = -178.0, 50.0
+    theta, d = 270.0, 1000e3 # 100 km
+    lon1_std, lat1_std = 168.16811943494397, 49.16776775255277
+    lon1, lat1 = Utilities.map_point_by_distance(lon0, lat0, theta, d)
+    assert(abs((lon1 - lon1_std)/lon1) < 1e-6)
+    assert(abs((lat1 - lat1_std)/lat1) < 1e-6)
