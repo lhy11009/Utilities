@@ -547,6 +547,7 @@ utilities_tranlate_script(){
     echo "${contents}" > "${fileout}"
 }
 
+# todo_series
 util_substitute_prm_file_contents(){
     # rewrite prm, substitue key with value
     # the lines to substitute are like:
@@ -569,12 +570,12 @@ util_substitute_prm_file_contents(){
         if ((${#inputs[@]}==2)); then
             [[ ${inputs[0]} =~ "${key}" ]] && newline="${inputs[0]}= ${value}"
         fi
-	if [[ ${first_line} == "true" ]]; then
-		first_line="false" 
-		echo "${newline}" > "${temp_file}"
-	else
-		echo "${newline}" >> "${temp_file}"
-	fi
+    	if [[ ${first_line} == "true" ]]; then
+    		first_line="false" 
+    		echo "${newline}" > "${temp_file}"
+    	else
+    		echo "${newline}" >> "${temp_file}"
+    	fi
     done < "${filename}"
     eval "mv ${temp_file} ${filename}"
     return 0
@@ -1026,6 +1027,7 @@ main(){
 		test_write_log
 		test_clean_log
 	fi
+    # todo_series
 
 }
 

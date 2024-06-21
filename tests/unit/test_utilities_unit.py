@@ -2,6 +2,8 @@ import os
 import pytest
 import numpy as np
 from python_scripts import Utilities
+import subprocess
+from shutil import rmtree  # for remove directories
 
 
 r'''
@@ -279,3 +281,15 @@ def test_map_point_by_distance():
     lon1, lat1 = Utilities.map_point_by_distance(lon0, lat0, theta, d)
     assert(abs((lon1 - lon1_std)/lon1) < 1e-6)
     assert(abs((lat1 - lat1_std)/lat1) < 1e-6)
+
+# todo_series
+def test_bash_utilities():
+    '''
+    '''
+    executable = os.path.join(".", "bash_scripts", "utilities.sh")
+
+    arg1 = "" 
+    
+    completed_process = subprocess.run([executable, arg1], capture_output=False, text=True)
+
+    # assert 1: 
