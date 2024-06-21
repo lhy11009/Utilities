@@ -5,6 +5,7 @@ import sys
 import inspect
 import math
 import numpy as np
+from functools import reduce
 from importlib import resources
 from pathlib import Path
 from PIL import Image, ImageFilter, ImageFont, ImageDraw
@@ -168,6 +169,10 @@ def string2list(inputs, _type=int):
         raise ValueError("%s: invalid option of _type (int or float)" % func_name())
     return outputs
 
+# credit: chatgpt
+# remove substrings in a string
+remove_substrings = lambda input_string, substrings_to_remove: \
+    reduce(lambda string, sub: re.sub(sub, '', string), substrings_to_remove, input_string)
 
 r'''
 Functions for read files
