@@ -606,6 +606,37 @@ def point2dist(p0, p1, geometry):
     return dist
 
 
+def SphBound(points):
+    '''
+    compute the bound of points (x, y, z) in (phi, theta, r)
+    Inputs
+        points: 3d, list or np.ndarray
+    '''
+    # assert points are in 3d
+    if type(points) == list:
+        assert(len(points[0]) == 3)
+        n_p = len(points)
+    elif type(points) == np.ndarray:
+        assert(points.shape[1] == 3)
+        n_p = points.shape[0]
+    else:
+        raise TypeError
+    bounds = [0 for i in range(6)]
+    r, theta, phi = cart2sph(points[0][0],points[0][1],points[0][2])
+    bounds[0] = phi; bounds[1] = phi
+    bounds[2] = theta; bounds[3] = theta
+    bounds[4] = r; bounds[5] = r
+    for i_p in range(1, n_p):
+        r, theta, phi = cart2sph(points[i_p][0],points[i_p][1],points[i_p][2])
+        bounds[0] = min(bounds[0], phi)
+        bounds[1] = max(bounds[1], phi)
+        bounds[2] = min(bounds[2], theta)
+        bounds[3] = max(bounds[3], theta)
+        bounds[4] = min(bounds[4], r)
+        bounds[5] = max(bounds[5], r)
+    return bounds
+
+
 r'''
 Functions for additional opionts in numpy
 '''
@@ -1534,3 +1565,5 @@ def map_point_by_distance(lon0, lat0, theta, d, **kwargs):
     lat = math.degrees(lat_rad)
     
     return lon, lat
+
+clamp = lambda v, min_val, max_val: max(min(v, max_val), min_val)

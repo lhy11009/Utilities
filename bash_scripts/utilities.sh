@@ -9,6 +9,15 @@ test_fixtures_dir="tests/integration/fixtures"
 set -a  # to export every variables that will be set
 
 ################################################################################
+# variables
+
+# chekc integer values:
+#   usage:
+#   [[ ${foo} =~ ${util_re_integer} ]]
+util_re_integer="^[0-9]+$"
+
+
+################################################################################
 # Unit functions
 element_in() {
 	# determine if element is in an array
@@ -559,6 +568,7 @@ util_substitute_prm_file_contents(){
     # Outputs:
     #   use the variable "return_values" to return
     local filename="$1"
+    [[ -e "${filename}" ]] || { cecho ${BAD} "${FUNCNAME[0]}: ${filename} doesn't exist."; exit 1; }
     local dir=$(dirname "${filename}")
     local temp_file="${dir}/subs_temp"
     local key="$2"
